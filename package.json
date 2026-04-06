@@ -2,7 +2,9 @@
   "name": "agora",
   "private": true,
   "packageManager": "npm@11.12.1",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "test": "turbo test",
@@ -11,5 +13,10 @@
   "devDependencies": {
     "turbo": "^2",
     "typescript": "^5.7"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.11",
+    "postgres": "^3.4.9"
   }
 }
