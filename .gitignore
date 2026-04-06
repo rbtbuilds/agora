@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+.turbo/
+__pycache__/
+*.egg-info/
+.venv/
+.scrapy/
