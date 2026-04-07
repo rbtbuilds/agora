@@ -57,6 +57,7 @@ export async function computeTrustScore(storeId: string): Promise<TrustScore> {
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString();
 
   if (store.lastSyncedAt && store.lastSyncedAt >= sevenDaysAgo) {
     dataQuality += 10;
@@ -67,7 +68,7 @@ export async function computeTrustScore(storeId: string): Promise<TrustScore> {
   const analyticsResult = await db
     .select({
       totalQueries: sql<number>`coalesce(sum(${storeAnalytics.queryCount}), 0)`,
-      recentQueries: sql<number>`coalesce(sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.queryCount} else 0 end), 0)`,
+      recentQueries: sql<number>`coalesce(sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.queryCount} else 0 end), 0)`,
     })
     .from(storeAnalytics)
     .where(eq(storeAnalytics.storeId, storeId));

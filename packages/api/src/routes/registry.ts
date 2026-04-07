@@ -51,13 +51,14 @@ registryRouter.get("/", async (c) => {
   // Get analytics for all fetched stores
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString();
 
   const analyticsAll = await db
     .select({
       storeId: storeAnalytics.storeId,
       totalQueries: sql<number>`sum(${storeAnalytics.queryCount})`,
-      queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.queryCount} else 0 end)`,
-      productViewsThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.productViews} else 0 end)`,
+      queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.queryCount} else 0 end)`,
+      productViewsThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.productViews} else 0 end)`,
     })
     .from(storeAnalytics)
     .groupBy(storeAnalytics.storeId);
@@ -83,6 +84,7 @@ registryRouter.get("/", async (c) => {
 registryRouter.get("/stats", async (c) => {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString();
 
   const [storeStats, productStats, queryStats] = await Promise.all([
     db
@@ -96,7 +98,7 @@ registryRouter.get("/stats", async (c) => {
     db
       .select({
         totalQueries: sql<number>`sum(${storeAnalytics.queryCount})`,
-        queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.queryCount} else 0 end)`,
+        queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.queryCount} else 0 end)`,
       })
       .from(storeAnalytics),
   ]);
@@ -140,12 +142,13 @@ registryRouter.get("/:id", async (c) => {
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString();
 
   const analyticsResult = await db
     .select({
       totalQueries: sql<number>`sum(${storeAnalytics.queryCount})`,
-      queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.queryCount} else 0 end)`,
-      productViewsThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgo} then ${storeAnalytics.productViews} else 0 end)`,
+      queriesThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.queryCount} else 0 end)`,
+      productViewsThisWeek: sql<number>`sum(case when ${storeAnalytics.date} >= ${sevenDaysAgoStr} then ${storeAnalytics.productViews} else 0 end)`,
     })
     .from(storeAnalytics)
     .where(eq(storeAnalytics.storeId, id));
@@ -180,6 +183,7 @@ registryRouter.get("/:id/analytics", async (c) => {
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString();
 
   const daily = await db
     .select({
