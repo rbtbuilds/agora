@@ -7,6 +7,7 @@ import { productsRouter } from "../packages/api/src/routes/products.js";
 import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 import { storesRouter } from "../packages/api/src/routes/stores.js";
 import { registryRouter } from "../packages/api/src/routes/registry.js";
+import { adapterRouter } from "../packages/api/src/routes/adapter.js";
 
 const app = new Hono();
 
@@ -582,6 +583,9 @@ app.get("/playground", (c) => {
 // Public registry routes — mounted BEFORE auth middleware
 app.route("/v1/registry", registryRouter);
 
+// Public adapter routes — mounted BEFORE auth middleware
+app.route("/v1/adapter", adapterRouter);
+
 app.use("/v1/*", authMiddleware);
 app.use("/v1/products/*", analyticsMiddleware);
 
@@ -720,6 +724,11 @@ app.get("/", (c) => {
       </div>
       <div class="endpoint">
         <span class="method">GET</span>
+        <span class="path">/v1/products/:id/compare</span>
+        <span class="desc">Cross-store matches</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
         <span class="path">/v1/categories</span>
         <span class="desc">Browse categories</span>
       </div>
@@ -737,6 +746,11 @@ app.get("/", (c) => {
         <span class="method">GET</span>
         <span class="path">/v1/stores/:id</span>
         <span class="desc">Store details</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">POST</span>
+        <span class="path">/v1/adapter/shopify</span>
+        <span class="desc">Adapt a Shopify store</span>
       </div>
       <div class="endpoint">
         <span class="method">GET</span>
