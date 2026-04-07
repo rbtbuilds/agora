@@ -191,6 +191,26 @@ app.get("/", (c) => {
         <span class="path">/v1/categories</span>
         <span class="desc">Browse categories</span>
       </div>
+      <div class="endpoint">
+        <span class="method">POST</span>
+        <span class="path">/v1/stores/register</span>
+        <span class="desc">Register a store</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/v1/stores</span>
+        <span class="desc">List stores</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/v1/stores/:id</span>
+        <span class="desc">Store details</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/.well-known/agora.json</span>
+        <span class="desc">Protocol manifest</span>
+      </div>
     </div>
     <div class="links">
       <a href="https://github.com/rbtbuilds/agora">GitHub</a>
