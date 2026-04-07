@@ -1,0 +1,25 @@
+{
+  "id": "sku-hiking-boot-001",
+  "url": "https://example.com/products/hiking-boot",
+  "name": "Alpine Pro Waterproof Hiking Boot",
+  "description": "Full-grain leather hiking boot with Gore-Tex lining",
+  "brand": "TrailMaster",
+  "pricing": { "amount": "189.99", "currency": "USD", "compare_at": "229.99" },
+  "availability": { "status": "in_stock", "quantity": 47, "regions": ["US", "CA"] },
+  "images": [{ "url": "https://example.com/img/boot-1.jpg", "alt": "Alpine Pro boot side view", "role": "primary" }],
+  "categories": [
+    { "name": "Footwear", "slug": "footwear" },
+    { "name": "Hiking", "slug": "hiking", "parent": "footwear" }
+  ],
+  "attributes": { "color": ["Brown", "Black"], "size": ["8", "9", "10", "11", "12"], "material": "Full-grain leather" },
+  "variants": [{
+    "id": "sku-hiking-boot-001-brown-10",
+    "attributes": { "color": "Brown", "size": "10" },
+    "pricing": { "amount": "189.99", "currency": "USD" },
+    "availability": { "status": "in_stock", "quantity": 12 }
+  }],
+  "identifiers": { "gtin": "0123456789012", "asin": "B001EXAMPLE" },
+  "reviews": { "average_rating": 4.6, "count": 342 },
+  "shipping": { "free_shipping": true, "estimated_days": { "min": 3, "max": 7 } },
+  "metadata": { "created_at": "2025-01-15T10:00:00Z", "updated_at": "2026-04-06T14:30:00Z", "tags": ["waterproof", "hiking", "bestseller"] }
+}

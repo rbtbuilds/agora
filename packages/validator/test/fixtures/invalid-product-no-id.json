@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/products/bad",
+  "name": "Missing ID Product",
+  "pricing": { "amount": "29.99", "currency": "USD" },
+  "availability": { "status": "in_stock" }
+}
