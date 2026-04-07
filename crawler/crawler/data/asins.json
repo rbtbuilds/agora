@@ -1,0 +1,21 @@
+{
+  "description": "Curated Amazon ASINs for demo catalog. Expand with Kaggle datasets.",
+  "categories": {
+    "electronics": [
+      "B09V3KXJPB", "B0BSHF7WHW", "B0C8QJR77S", "B0BT2P9GYS",
+      "B0CFCN1KKL", "B0D1XD1ZV3", "B09JQL3NWT", "B0CSTJ2Y7N"
+    ],
+    "fashion": [
+      "B07QMH297K", "B08FBX6NM7", "B09JNKSW7Y", "B0B14DQKFJ",
+      "B07PF1Y28C", "B078964BBN", "B09HGD7XWZ", "B07ZPC9QD4"
+    ],
+    "home": [
+      "B07VFCMJBM", "B08GKSC27K", "B0BCWXYF3L", "B08CDM3VKN",
+      "B07MFZY2F2", "B08GFQ5NR5", "B0B8RHP7M9", "B09ZHN7VQ6"
+    ],
+    "outdoor": [
+      "B078WGF2CG", "B07BGKRQ44", "B08JQHP56C", "B078K3N8TJ",
+      "B07GLJ9M4L", "B0776NCQWH", "B07FNFHTLM", "B07BHXHG6P"
+    ]
+  }
+}
