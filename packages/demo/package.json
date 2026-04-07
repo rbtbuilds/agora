@@ -3,26 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
-    "build": "next build",
+    "dev": "npx tailwindcss -i app/globals.css -o app/tailwind.css --watch & next dev --port 3001",
+    "build": "npx tailwindcss -i app/globals.css -o app/tailwind.css --minify && next build",
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3",
+    "@ai-sdk/groq": "^3",
+    "@ai-sdk/react": "^3",
+    "ai": "^6",
+    "autoprefixer": "^10.4.27",
     "next": "^15",
+    "postcss": "^8.5.8",
     "react": "^19",
     "react-dom": "^19",
-    "ai": "^6",
-    "@ai-sdk/react": "^3",
-    "@ai-sdk/groq": "^3",
-    "@ai-sdk/google": "^3",
     "zod": "^3.25"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.7",
-    "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4"
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7"
   }
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "./tailwind.css";
 
 export const metadata: Metadata = {
   title: "Agora Demo — AI Shopping Agent",
