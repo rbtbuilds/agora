@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "store": {
+    "name": "My Store",
+    "url": "https://mystore.com"
+  },
+  "capabilities": {
+    "products": "/api/products",
+    "product": "/api/products/{id}"
+  }
+}

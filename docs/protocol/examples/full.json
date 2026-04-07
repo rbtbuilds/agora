@@ -1,0 +1,39 @@
+{
+  "$schema": "https://protocol.agora.dev/v1/schema.json",
+  "version": "1.0",
+  "store": {
+    "name": "Iron Kettle Coffee",
+    "url": "https://ironkettlecoffee.com",
+    "description": "Direct-trade specialty coffee roasted in Portland, Oregon. Single origins, seasonal blends, and equipment for serious home brewers.",
+    "logo": "https://ironkettlecoffee.com/images/logo.png",
+    "locale": "en-US",
+    "currency": "USD"
+  },
+  "capabilities": {
+    "products": "/api/products",
+    "product": "/api/products/{id}",
+    "search": "/api/products/search",
+    "inventory": "/api/inventory",
+    "cart": "/api/cart",
+    "checkout": "/api/checkout"
+  },
+  "auth": {
+    "type": "api_key",
+    "header": "X-API-Key",
+    "description": "Request a free API key for read access at https://ironkettlecoffee.com/developers. Cart and checkout endpoints require a key with write scope."
+  },
+  "rate_limiting": {
+    "requests_per_minute": 60,
+    "burst": 10
+  },
+  "data_policy": {
+    "cache_ttl": 3600,
+    "attribution_required": true,
+    "commercial_use": true,
+    "description": "Product data may be used to assist purchasing decisions. Attribution to Iron Kettle Coffee is required when displaying products to end users. Full terms: https://ironkettlecoffee.com/api-terms"
+  },
+  "contact": {
+    "email": "developers@ironkettlecoffee.com",
+    "url": "https://ironkettlecoffee.com/developers"
+  }
+}
