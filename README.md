@@ -11,7 +11,7 @@ Agora makes the web accessible to AI agents by providing a unified API, SDK, and
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Hono](https://img.shields.io/badge/Hono-v4-orange?logo=hono&logoColor=white)](https://hono.dev/)
 
-[**Try the Demo →**](https://demo-five-coral-13.vercel.app) · [Getting Started](#getting-started) · [SDK Usage](#sdk-usage) · [MCP Server](#mcp-server) · [API Reference](#api-reference) · [Architecture](#architecture)
+[**Try the Demo →**](https://demo-five-coral-13.vercel.app) · [**Developer Portal →**](https://portal-opal-two.vercel.app) · [Getting Started](#getting-started) · [SDK Usage](#sdk-usage) · [MCP Server](#mcp-server) · [API Reference](#api-reference) · [Architecture](#architecture)
 
 </div>
 
