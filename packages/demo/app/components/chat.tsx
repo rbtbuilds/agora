@@ -13,9 +13,11 @@ const SUGGESTIONS = [
   "Compare the cheapest loungers",
 ];
 
+const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
+
 function Chat() {
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: chatTransport,
   });
   const [input, setInput] = useState("");
 
