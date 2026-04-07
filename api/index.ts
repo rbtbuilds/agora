@@ -8,6 +8,48 @@ import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 const app = new Hono();
 
 app.use("*", cors());
+
+app.get("/.well-known/agora.json", (c) => {
+  return c.json({
+    $schema: "https://protocol.agora.dev/v1/schema.json",
+    version: "1.0",
+    store: {
+      name: "Agora",
+      url: "https://agora-ecru-chi.vercel.app",
+      description: "The agent-friendly commerce layer for the internet",
+      categories: [
+        "apparel",
+        "shoes",
+        "accessories",
+        "home",
+        "food",
+        "beauty",
+        "electronics",
+      ],
+      currency: "USD",
+      locale: "en-US",
+    },
+    capabilities: {
+      products: "/v1/products/search?q=*",
+      product: "/v1/products/{id}",
+      search: "/v1/products/search",
+    },
+    auth: {
+      type: "bearer",
+      registration: "https://portal-opal-two.vercel.app",
+    },
+    rate_limits: {
+      requests_per_minute: 60,
+      burst: 10,
+    },
+    data_policy: {
+      cache_ttl: 3600,
+      attribution_required: false,
+      commercial_use: true,
+    },
+  });
+});
+
 app.use("/v1/*", authMiddleware);
 
 app.get("/", (c) => {
