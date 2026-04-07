@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.agora.dev/v1/agora-manifest.schema.json",
+  "title": "Agora Manifest",
+  "description": "Schema for the agora.json manifest served at /.well-known/agora.json",
+  "type": "object",
+  "required": ["version", "store", "capabilities"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URL to this JSON Schema"
+    },
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Protocol version"
+    },
+    "store": {
+      "type": "object",
+      "required": ["name", "url"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "Human-readable store name" },
+        "url": { "type": "string", "format": "uri", "description": "Canonical store URL" },
+        "description": { "type": "string", "maxLength": 500, "description": "Short store description" },
+        "logo": { "type": "string", "format": "uri", "description": "URL to store logo" },
+        "categories": { "type": "array", "items": { "type": "string" }, "description": "Product categories this store serves" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$", "description": "Default ISO 4217 currency code" },
+        "locale": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$", "description": "Default locale (e.g. en-US)" }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["products", "product"],
+      "properties": {
+        "products": { "type": "string", "description": "Paginated product feed endpoint (required)" },
+        "product": { "type": "string", "description": "Single product endpoint with {id} placeholder (required)" },
+        "search": { "type": "string", "description": "Search endpoint (optional)" },
+        "inventory": { "type": "string", "description": "Real-time inventory endpoint (optional)" },
+        "cart": { "type": "string", "description": "Add-to-cart endpoint (optional)" },
+        "checkout": { "type": "string", "description": "Initiate checkout endpoint (optional)" }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["none", "api_key", "bearer", "oauth2"], "description": "Authentication method" },
+        "registration": { "type": "string", "format": "uri", "description": "URL where agents can register for credentials" }
+      },
+      "additionalProperties": false
+    },
+    "rate_limits": {
+      "type": "object",
+      "properties": {
+        "requests_per_minute": { "type": "integer", "minimum": 1, "description": "Max requests per minute" },
+        "burst": { "type": "integer", "minimum": 1, "description": "Max burst requests" }
+      },
+      "additionalProperties": false
+    },
+    "data_policy": {
+      "type": "object",
+      "properties": {
+        "cache_ttl": { "type": "integer", "minimum": 0, "description": "Recommended cache TTL in seconds" },
+        "attribution_required": { "type": "boolean", "description": "Whether attribution is required when displaying products" },
+        "commercial_use": { "type": "boolean", "description": "Whether commercial use of product data is permitted" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.agora.dev/v1/agora-product.schema.json",
+  "title": "Agora Product",
+  "description": "Schema for products returned by Agora Protocol endpoints",
+  "type": "object",
+  "required": ["id", "url", "name", "pricing", "availability"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "description": "Unique product identifier within the store" },
+    "url": { "type": "string", "format": "uri", "description": "Canonical product page URL" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 500, "description": "Product name" },
+    "description": { "type": "string", "maxLength": 5000, "description": "Product description (plain text)" },
+    "brand": { "type": "string", "description": "Brand or manufacturer name" },
+    "pricing": {
+      "type": "object",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": { "type": "string", "pattern": "^\\d+\\.\\d{2}$", "description": "Price as decimal string (e.g. 189.99)" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$", "description": "ISO 4217 currency code" },
+        "compare_at": { "type": "string", "pattern": "^\\d+\\.\\d{2}$", "description": "Original/MSRP price for showing discounts" },
+        "unit_pricing": {
+          "type": "object",
+          "required": ["amount", "unit"],
+          "properties": {
+            "amount": { "type": "string", "pattern": "^\\d+\\.\\d{2}$" },
+            "unit": { "type": "string", "description": "Unit of measure (e.g. oz, lb, kg)" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "availability": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["in_stock", "out_of_stock", "preorder", "backorder"], "description": "Current availability status" },
+        "quantity": { "type": "integer", "minimum": 0, "description": "Exact quantity available" },
+        "lead_time_days": { "type": ["integer", "null"], "minimum": 0, "description": "Estimated days until available (preorder/backorder)" },
+        "regions": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2}$" }, "description": "ISO 3166-1 alpha-2 country codes where available" }
+      },
+      "additionalProperties": false
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "description": "Image URL" },
+          "alt": { "type": "string", "description": "Alt text for accessibility" },
+          "role": { "type": "string", "enum": ["primary", "gallery", "swatch", "lifestyle"], "description": "Image role in the product listing" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "slug"],
+        "properties": {
+          "name": { "type": "string" },
+          "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "parent": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      },
+      "description": "Key-value product attributes (e.g. color, size, material)"
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "attributes"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "attributes": { "type": "object", "additionalProperties": { "type": "string" } },
+          "pricing": { "$ref": "#/properties/pricing" },
+          "availability": { "$ref": "#/properties/availability" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "identifiers": {
+      "type": "object",
+      "properties": {
+        "gtin": { "type": ["string", "null"] },
+        "upc": { "type": ["string", "null"] },
+        "isbn": { "type": ["string", "null"] },
+        "asin": { "type": ["string", "null"] },
+        "mpn": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false,
+      "description": "Standard product identifiers for cross-store matching"
+    },
+    "reviews": {
+      "type": "object",
+      "properties": {
+        "average_rating": { "type": "number", "minimum": 0, "maximum": 5 },
+        "count": { "type": "integer", "minimum": 0 },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    },
+    "shipping": {
+      "type": "object",
+      "properties": {
+        "free_shipping": { "type": "boolean" },
+        "free_shipping_minimum": { "type": "string", "pattern": "^\\d+\\.\\d{2}$" },
+        "estimated_days": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

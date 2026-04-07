@@ -1,0 +1,16 @@
+{
+  "name": "@agora/validator",
+  "version": "0.1.0",
+  "description": "Validate agora.json manifests and product feeds against the Agora Protocol spec",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/rbtbuilds/agora", "directory": "packages/validator" },
+  "keywords": ["agora", "protocol", "validator", "e-commerce", "ai-agents", "json-schema"],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": { "agora-validator": "dist/cli.js" },
+  "exports": { ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" } },
+  "scripts": { "build": "tsc", "test": "vitest run", "test:watch": "vitest" },
+  "dependencies": { "ajv": "^8.17", "ajv-formats": "^3.0" },
+  "devDependencies": { "typescript": "^5.7", "vitest": "^3", "@types/node": "^22" }
+}
