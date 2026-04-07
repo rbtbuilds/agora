@@ -29,6 +29,13 @@
       "when": 1775591968413,
       "tag": "0003_naive_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775592401205,
+      "tag": "0004_bored_power_man",
+      "breakpoints": true
     }
   ]
 }
