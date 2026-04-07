@@ -585,6 +585,407 @@ app.get("/playground", (c) => {
 </html>`);
 });
 
+// Public approval routes — mounted BEFORE auth middleware
+// These are consumer-facing pages accessed via link (SMS/email)
+
+function approvalErrorPage(title: string, message: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora Checkout</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      margin: 1rem;
+      text-align: center;
+    }
+    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; color: #e5e5e5; margin-bottom: 0.5rem; }
+    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#128274;</div>
+    <h1>${title}</h1>
+    <p>${message}</p>
+  </div>
+</body>
+</html>`;
+}
+
+app.get("/approve/:token", async (c) => {
+  const token = c.req.param("token");
+
+  const result = await db.select().from(checkouts)
+    .where(eq(checkouts.approvalToken, token)).limit(1);
+
+  if (result.length === 0) {
+    return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid. It may have already been used or does not exist."), 404);
+  }
+
+  const checkout = result[0];
+
+  if (checkout.status !== "pending") {
+    const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
+    return c.html(approvalErrorPage(
+      `Purchase already ${statusMsg}`,
+      `This purchase has already been ${statusMsg}. No further action is needed.`
+    ), 410);
+  }
+
+  if (new Date() > checkout.expiresAt) {
+    return c.html(approvalErrorPage("Approval link expired", "This approval link has expired. Please ask the agent to initiate a new checkout."), 410);
+  }
+
+  const items = await db.select({
+    name: products.name,
+    quantity: cartItems.quantity,
+    price: cartItems.priceAtAdd,
+    storeName: stores.name,
+  }).from(cartItems)
+    .innerJoin(products, eq(cartItems.productId, products.id))
+    .leftJoin(stores, eq(cartItems.storeId, stores.id))
+    .where(eq(cartItems.cartId, checkout.cartId));
+
+  let cardInfo = "Card on file";
+  if (checkout.paymentMethodId) {
+    const pm = await db.select().from(paymentMethods)
+      .where(eq(paymentMethods.id, checkout.paymentMethodId)).limit(1);
+    if (pm.length > 0) cardInfo = `${pm[0].brand} ending in ${pm[0].last4}`;
+  }
+
+  const now = new Date();
+  const minutesLeft = Math.max(0, Math.round((checkout.expiresAt.getTime() - now.getTime()) / 60000));
+  const expiryText = minutesLeft <= 1 ? "less than a minute" : `${minutesLeft} min`;
+
+  const itemsHtml = items.map((item) => {
+    const storeLabel = item.storeName ? ` &middot; ${item.storeName}` : "";
+    const lineTotal = (parseFloat(item.price) * item.quantity).toFixed(2);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;background:#0a0a0a;border-radius:8px;margin-bottom:0.5rem;">
+      <div>
+        <div style="font-size:0.95rem;color:#e5e5e5;font-weight:500;">${item.name} <span style="color:#71717a;font-weight:400;">&times;${item.quantity}</span></div>
+        <div style="font-size:0.8rem;color:#71717a;margin-top:0.2rem;">$${item.price}${storeLabel}</div>
+      </div>
+      <div style="font-size:0.95rem;color:#e5e5e5;font-weight:600;">$${lineTotal}</div>
+    </div>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora Checkout</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 420px;
+      width: 100%;
+      margin: 1rem;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .header-icon { font-size: 1.25rem; }
+    .header h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: -0.01em;
+    }
+    .subtitle { font-size: 0.875rem; color: #71717a; margin-bottom: 1rem; }
+    .items { margin-bottom: 1.25rem; }
+    .divider { border: none; border-top: 1px solid #27272a; margin: 1.25rem 0; }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .summary-label { font-size: 0.875rem; color: #a1a1aa; }
+    .summary-value { font-size: 0.875rem; color: #a1a1aa; }
+    .total-amount { font-size: 1.1rem; font-weight: 700; color: #e5e5e5; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+    .btn-approve {
+      flex: 1;
+      background: #a78bfa;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-approve:hover { background: #c4b5fd; }
+    .btn-deny {
+      flex: 1;
+      background: transparent;
+      color: #e5e5e5;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-deny:hover { border-color: #ef4444; color: #ef4444; }
+    .expiry { text-align: center; font-size: 0.78rem; color: #52525b; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <span class="header-icon">&#128274;</span>
+      <h1>Agora Checkout</h1>
+    </div>
+    <p class="subtitle">An agent wants to purchase:</p>
+    <div class="items">${itemsHtml}</div>
+    <hr class="divider">
+    <div class="summary-row">
+      <span class="summary-label">Total</span>
+      <span class="total-amount">$${checkout.totalAmount}</span>
+    </div>
+    <div class="summary-row" style="margin-bottom:0;">
+      <span class="summary-label">Card</span>
+      <span class="summary-value">${cardInfo}</span>
+    </div>
+    <div class="actions">
+      <form action="/approve/${token}/confirm" method="POST" style="flex:1;">
+        <button type="submit" class="btn-approve" style="width:100%;">Approve</button>
+      </form>
+      <form action="/approve/${token}/deny" method="POST" style="flex:1;">
+        <button type="submit" class="btn-deny" style="width:100%;">Deny</button>
+      </form>
+    </div>
+    <p class="expiry">This link expires in ${expiryText}</p>
+  </div>
+</body>
+</html>`;
+
+  return c.html(html);
+});
+
+app.post("/approve/:token/confirm", async (c) => {
+  const token = c.req.param("token");
+
+  const result = await db.select().from(checkouts)
+    .where(eq(checkouts.approvalToken, token)).limit(1);
+
+  if (result.length === 0) {
+    return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid."), 404);
+  }
+
+  const checkout = result[0];
+
+  if (checkout.status !== "pending") {
+    const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
+    return c.html(approvalErrorPage(
+      `Purchase already ${statusMsg}`,
+      `This purchase has already been ${statusMsg}. No further action is needed.`
+    ), 410);
+  }
+
+  if (new Date() > checkout.expiresAt) {
+    return c.html(approvalErrorPage("Approval link expired", "This approval link has expired."), 410);
+  }
+
+  // Get cart items
+  const items = await db.select({
+    productId: cartItems.productId,
+    storeId: cartItems.storeId,
+    quantity: cartItems.quantity,
+    price: cartItems.priceAtAdd,
+    name: products.name,
+  }).from(cartItems)
+    .innerJoin(products, eq(cartItems.productId, products.id))
+    .where(eq(cartItems.cartId, checkout.cartId));
+
+  // Group items by storeId to create one order per store
+  const storeGroups = new Map<string | null, typeof items>();
+  for (const item of items) {
+    const key = item.storeId ?? null;
+    if (!storeGroups.has(key)) storeGroups.set(key, []);
+    storeGroups.get(key)!.push(item);
+  }
+
+  for (const [storeId, storeItems] of storeGroups) {
+    const orderId = `ord_${crypto.randomBytes(12).toString("hex")}`;
+    const orderTotal = storeItems
+      .reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0)
+      .toFixed(2);
+    await db.insert(orders).values({
+      id: orderId,
+      checkoutId: checkout.id,
+      consumerId: checkout.consumerId,
+      storeId: storeId ?? undefined,
+      status: "confirmed",
+      totalAmount: orderTotal,
+      items: storeItems.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+    });
+  }
+
+  await db.update(checkouts)
+    .set({ status: "completed" })
+    .where(eq(checkouts.id, checkout.id));
+
+  await db.update(carts)
+    .set({ status: "checked_out" })
+    .where(eq(carts.id, checkout.cartId));
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Approved</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      margin: 1rem;
+      text-align: center;
+    }
+    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; color: #a78bfa; margin-bottom: 0.5rem; }
+    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
+    .amount { font-size: 1.5rem; font-weight: 700; color: #e5e5e5; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#9989;</div>
+    <h1>Purchase approved</h1>
+    <div class="amount">$${checkout.totalAmount}</div>
+    <p>Your purchase has been approved and is being processed. You will receive a confirmation shortly.</p>
+  </div>
+</body>
+</html>`;
+
+  return c.html(html);
+});
+
+app.post("/approve/:token/deny", async (c) => {
+  const token = c.req.param("token");
+
+  const result = await db.select().from(checkouts)
+    .where(eq(checkouts.approvalToken, token)).limit(1);
+
+  if (result.length === 0) {
+    return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid."), 404);
+  }
+
+  const checkout = result[0];
+
+  if (checkout.status !== "pending") {
+    const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
+    return c.html(approvalErrorPage(
+      `Purchase already ${statusMsg}`,
+      `This purchase has already been ${statusMsg}. No further action is needed.`
+    ), 410);
+  }
+
+  await db.update(checkouts)
+    .set({ status: "denied" })
+    .where(eq(checkouts.id, checkout.id));
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Denied</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      margin: 1rem;
+      text-align: center;
+    }
+    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; color: #e5e5e5; margin-bottom: 0.5rem; }
+    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#128683;</div>
+    <h1>Purchase denied</h1>
+    <p>You have denied this purchase. The agent has been notified and no charge has been made.</p>
+  </div>
+</body>
+</html>`;
+
+  return c.html(html);
+});
+
 // Public registry routes — mounted BEFORE auth middleware
 app.route("/v1/registry", registryRouter);
 
