@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { db, stores, storeAnalytics, products } from "@agora/db";
 import { eq, desc, sql, ilike, gte, and, SQL } from "drizzle-orm";
+import { computeTrustScore } from "../lib/trust-score.js";
 
 const registryRouter = new Hono();
 
@@ -110,6 +111,16 @@ registryRouter.get("/stats", async (c) => {
       queries_this_week: Number(queryStats[0]?.queriesThisWeek ?? 0),
     },
   });
+});
+
+// GET /v1/registry/:id/trust-score — Compute and return trust score
+registryRouter.get("/:id/trust-score", async (c) => {
+  const id = c.req.param("id");
+  const result = await computeTrustScore(id);
+  if (result.score === 0 && result.details.includes("Store not found")) {
+    return c.json({ error: { code: "NOT_FOUND", message: `Store ${id} not found` } }, 404);
+  }
+  return c.json({ data: result });
 });
 
 // GET /v1/registry/:id — Single store with analytics
