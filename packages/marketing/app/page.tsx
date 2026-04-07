@@ -169,10 +169,14 @@ export default function Home() {
               Agora
             </h1>
 
-            <p className="text-xl sm:text-2xl text-secondary max-w-xl leading-relaxed mb-16">
+            <p className="text-xl sm:text-2xl text-secondary max-w-2xl leading-relaxed mb-6">
               The internet&apos;s missing commerce layer.
               <br />
               Built for AI agents. Open for everyone.
+            </p>
+
+            <p className="text-base text-secondary/70 max-w-xl leading-relaxed mb-16">
+              The internet was built for human browsers. AI agents need to discover, search, and purchase from stores programmatically - but there&apos;s no standard interface for that. Agora is the open protocol that makes every store agent-ready.
             </p>
 
             {/* Role Selector Cards */}
@@ -242,6 +246,46 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ═══ HOW IT WORKS ═══ */}
+        <section className="py-28 px-6">
+          <div className="max-w-5xl mx-auto">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
+              How It Works
+            </span>
+
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-6">
+              Three layers. One protocol.
+            </h2>
+            <p className="text-lg text-secondary max-w-2xl mb-16">
+              Agora connects AI agents to e-commerce stores through an open protocol. Stores publish a manifest describing their capabilities. Agents discover stores through a public registry. Purchases happen through a consumer-approved transaction layer.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-12">
+              <div>
+                <div className="text-xs font-mono text-accent uppercase tracking-wider mb-3">01 Discover</div>
+                <div className="text-sm font-semibold text-white mb-2">Stores serve agora.json</div>
+                <p className="text-sm text-secondary leading-relaxed">
+                  Like robots.txt tells crawlers what to index, agora.json tells agents what a store sells and how to buy it. A simple JSON manifest at <code className="text-accent/80">/.well-known/agora.json</code> declares the store&apos;s products endpoint, search capabilities, authentication, and rate limits.
+                </p>
+              </div>
+              <div>
+                <div className="text-xs font-mono text-accent uppercase tracking-wider mb-3">02 Search</div>
+                <div className="text-sm font-semibold text-white mb-2">Agents query the network</div>
+                <p className="text-sm text-secondary leading-relaxed">
+                  The public registry indexes every protocol-compliant store. Agents search across all stores simultaneously - one query returns products from 52 stores, ranked by relevance. Cross-store matching finds the same product at different prices. Trust scores surface the most reliable stores.
+                </p>
+              </div>
+              <div>
+                <div className="text-xs font-mono text-accent uppercase tracking-wider mb-3">03 Transact</div>
+                <div className="text-sm font-semibold text-white mb-2">Consumers approve, agents buy</div>
+                <p className="text-sm text-secondary leading-relaxed">
+                  Agents build carts and request checkout. Consumers approve each purchase either inline (&quot;Buy these boots for $89?&quot;) or via a secure approval link. Tokenized payments mean Agora never stores card numbers. Stores receive order notifications via webhooks.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ═══ DEVELOPER SECTION ═══ */}
         <section id="developer" className="py-28 px-6 scroll-mt-8">
           <div
@@ -255,9 +299,11 @@ export default function Home() {
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               Build agents that shop
             </h2>
-            <p className="text-lg text-secondary max-w-lg mb-12">
-              One SDK. Every store. Search, cart, and checkout with three
-              lines of code.
+            <p className="text-lg text-secondary max-w-2xl mb-6">
+              Your agent shouldn&apos;t need to scrape HTML, reverse-engineer checkout flows, or handle a different API for every store. Agora gives you one unified interface to search 22,000+ products, compare prices across stores, and complete purchases - all through a single SDK.
+            </p>
+            <p className="text-base text-secondary/70 max-w-2xl mb-12">
+              Three integration paths: a TypeScript SDK with built-in caching, an MCP server for Claude and ChatGPT, or direct REST API calls. Full OpenAPI spec at <a href="https://agora-ecru-chi.vercel.app/openapi.json" className="text-accent hover:underline">/openapi.json</a> and an interactive playground to test every endpoint before writing a line of code.
             </p>
 
             {/* SDK Code Block */}
@@ -359,9 +405,14 @@ export default function Home() {
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               Make your store agent-ready
             </h2>
-            <p className="text-lg text-secondary max-w-lg mb-12">
-              One API call connects your Shopify store to every AI agent on the
-              network. No code changes required.
+            <p className="text-lg text-secondary max-w-2xl mb-6">
+              AI agents are the next sales channel. When a consumer tells their AI assistant to &quot;find me hiking boots under $100,&quot; your store should be in those results. Agora makes that happen - instantly for Shopify stores, or through a simple protocol spec for custom platforms.
+            </p>
+            <p className="text-base text-secondary/70 max-w-2xl mb-6">
+              Stores that join the protocol get listed in a public registry that every agent on the network can query. You get analytics showing how agents interact with your products, a trust score that boosts your visibility, and webhook notifications for every search, view, and purchase.
+            </p>
+            <p className="text-base text-secondary/70 max-w-2xl mb-12">
+              For Shopify stores, it&apos;s a single API call - no code changes, no app installs, no configuration. We generate your protocol manifest, proxy your product feed in the standard format, and register you in the public registry. For custom platforms, implement two endpoints and validate with our CLI tool.
             </p>
 
             {/* Shopify Adapter Code Block */}
@@ -426,9 +477,14 @@ export default function Home() {
               <br />
               for agent commerce
             </h2>
-            <p className="text-lg text-secondary max-w-lg mb-16">
-              Agents need to buy things. There&apos;s no protocol for that.
-              We&apos;re building it.
+            <p className="text-lg text-secondary max-w-2xl mb-6">
+              The internet is being rebuilt for AI agents. Today, agents can read, write, and reason - but they can&apos;t buy. There&apos;s no standard way for an AI to discover what a store sells, compare prices, or complete a purchase. Agora is that standard.
+            </p>
+            <p className="text-base text-secondary/70 max-w-2xl mb-6">
+              Like Stripe built the payment rails for the internet, Agora is building the commerce rails for the agent era. Stores implement a simple protocol (<code className="text-accent/80">agora.json</code> at <code className="text-accent/80">/.well-known/</code>), agents discover them through a public registry, and transactions flow through a consumer-approved checkout layer.
+            </p>
+            <p className="text-base text-secondary/70 max-w-2xl mb-16">
+              The protocol is live. The registry is public. The transaction layer works end-to-end. 52 stores and 22,562 products are already indexed. The Shopify adapter means any of 4 million+ merchants can join with a single API call. The question isn&apos;t whether agent commerce will happen - it&apos;s who builds the infrastructure.
             </p>
 
             {/* Key Data Points */}
@@ -455,15 +511,15 @@ export default function Home() {
                 {[
                   {
                     title: "Protocol standard",
-                    desc: "Network effects compound as adoption grows. Each new store makes the protocol more valuable for agents.",
+                    desc: "Like HTTP defined how browsers talk to servers, agora.json defines how agents talk to stores. Network effects compound with every adoption. Each new store makes the protocol more valuable for agents, each new agent makes it more valuable for stores. Open standard, MIT licensed - impossible to route around.",
                   },
                   {
-                    title: "Registry",
-                    desc: "The discovery layer. Agents find stores here first. Becoming the DNS of agent commerce.",
+                    title: "Discovery registry",
+                    desc: "The public registry is the DNS of agent commerce. Agents don't need to know store URLs - they query the registry. Stores are ranked by trust score, analytics, and protocol compliance. First-mover advantage in building the canonical directory.",
                   },
                   {
                     title: "Commerce rail",
-                    desc: "Transaction fees on every agent purchase. Infrastructure-grade revenue that scales with the network.",
+                    desc: "Every agent purchase flows through Agora's checkout layer. Consumer-approved payments via tokenized cards (Stripe). Transaction fees on every purchase that scales linearly with network volume. Infrastructure-grade recurring revenue.",
                   },
                 ].map((m) => (
                   <div key={m.title}>
@@ -491,6 +547,57 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ WHAT'S LIVE ═══ */}
+        <section className="py-28 px-6 border-t border-border">
+          <div className="max-w-5xl mx-auto">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
+              Live Now
+            </span>
+
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-6">
+              This isn&apos;t a whitepaper
+            </h2>
+            <p className="text-lg text-secondary max-w-2xl mb-16">
+              Everything described on this page is deployed and running in production. Try any endpoint right now.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-16">
+              {[
+                { value: "22,562", label: "Products indexed" },
+                { value: "52", label: "Stores on network" },
+                { value: "30+", label: "API endpoints" },
+                { value: "50", label: "Automated tests" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <div className="text-2xl font-extrabold font-mono text-white mb-1">{s.value}</div>
+                  <div className="text-xs text-secondary">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { label: "Protocol spec + JSON Schemas", desc: "Formal specification with machine-readable validation" },
+                { label: "CLI validator", desc: "npx @agora/validator checks any store's compliance" },
+                { label: "Public registry", desc: "Searchable directory with analytics and trust scoring" },
+                { label: "Shopify adapter", desc: "Zero-config onboarding for 4M+ Shopify stores" },
+                { label: "Commerce transaction layer", desc: "Cart, checkout, and orders with consumer approval" },
+                { label: "Webhook event system", desc: "HMAC-signed notifications for searches, views, and purchases" },
+                { label: "Cross-store matching", desc: "Find the same product at different stores and prices" },
+                { label: "Interactive API playground", desc: "Test every endpoint in your browser" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-start gap-3 py-2">
+                  <span className="text-accent mt-1 text-sm">&#10003;</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{item.label}</div>
+                    <div className="text-xs text-secondary mt-0.5">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
