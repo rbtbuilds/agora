@@ -55,8 +55,9 @@ async function createStream(messages: UIMessage[]) {
   const modelMessages = await convertToModelMessages(messages);
 
   try {
+    // Gemini primary — reliable tool calling support
     return streamText({
-      model: groq("llama-3.3-70b-versatile"),
+      model: google("gemini-2.0-flash"),
       system: SYSTEM_PROMPT,
       messages: modelMessages,
       tools: { searchProducts: searchProductsTool },
@@ -65,8 +66,9 @@ async function createStream(messages: UIMessage[]) {
   } catch (error: unknown) {
     const status = (error as { status?: number })?.status;
     if (status === 429) {
+      // Groq fallback on rate limit
       return streamText({
-        model: google("gemini-2.0-flash"),
+        model: groq("llama-3.3-70b-versatile"),
         system: SYSTEM_PROMPT,
         messages: modelMessages,
         tools: { searchProducts: searchProductsTool },
