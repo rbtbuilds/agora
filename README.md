@@ -2,7 +2,7 @@
 
 **The open protocol for agent commerce.**
 
-The internet was built for human browsers. AI agents need to discover, search, and transact with stores programmatically — but today's web has no standard interface for them. Agora defines that interface.
+The internet was built for human browsers. AI agents need to discover, search, and transact with stores programmatically -but today's web has no standard interface for them. Agora defines that interface.
 
 Agora is an open protocol, a commerce transaction layer, a public registry, and a complete toolkit for AI agents. Stores adopt the protocol. Agents discover, search, compare, and purchase across all of them through a single API.
 
@@ -47,7 +47,7 @@ Full specification: [docs/protocol/spec.md](docs/protocol/spec.md) | Product sch
 
 ## The Commerce Layer
 
-Agents don't just search — they buy. Agora provides a complete transaction flow with consumer-approved payments.
+Agents don't just search -they buy. Agora provides a complete transaction flow with consumer-approved payments.
 
 ```
 Consumer: "Buy me those hiking boots"
@@ -116,7 +116,7 @@ Built-in response caching. Full TypeScript types. Zero dependencies.
 
 ### MCP Server
 
-For agents that support the [Model Context Protocol](https://modelcontextprotocol.io/) — Claude, ChatGPT, Cursor, and others.
+For agents that support the [Model Context Protocol](https://modelcontextprotocol.io/) -Claude, ChatGPT, Cursor, and others.
 
 ```bash
 npm install agora-mcp-server
@@ -165,7 +165,7 @@ Agora generates your `agora.json`, proxies your product feed in protocol format,
 
 Implement the protocol directly for full control.
 
-1. Create your `agora.json` — declare capabilities and endpoints
+1. Create your `agora.json` -declare capabilities and endpoints
 2. Serve it at `/.well-known/agora.json`
 3. Implement the required endpoints (`products` and `product`)
 4. Validate: `npx @agora/validator https://yourdomain.com`
@@ -175,12 +175,12 @@ Getting started guide: [docs/protocol/getting-started.md](docs/protocol/getting-
 
 ### What Stores Get
 
-- **Listed in the public registry** — agents discover your store automatically
-- **Agent commerce** — agents can build carts and purchase from your store with consumer approval
-- **Analytics** — see how agents interact with your products (queries, views, trends)
-- **Trust score** — protocol compliance rating that agents use to prioritize stores
-- **Webhooks** — real-time notifications for searches, product views, and orders
-- **Cross-store visibility** — your products appear in comparison results across the network
+- **Listed in the public registry** -agents discover your store automatically
+- **Agent commerce** -agents can build carts and purchase from your store with consumer approval
+- **Analytics** -see how agents interact with your products (queries, views, trends)
+- **Trust score** -protocol compliance rating that agents use to prioritize stores
+- **Webhooks** -real-time notifications for searches, product views, and orders
+- **Cross-store visibility** -your products appear in comparison results across the network
 
 ---
 
@@ -190,14 +190,14 @@ Monorepo managed by [Turborepo](https://turbo.build/). CI via GitHub Actions.
 
 | Package | Description |
 |---------|-------------|
-| `packages/validator` | Protocol validator — CLI and library (`@agora/validator`) |
+| `packages/validator` | Protocol validator -CLI and library (`@agora/validator`) |
 | `packages/sdk` | TypeScript SDK for agent developers (`agora-sdk`) |
 | `packages/mcp` | MCP server for AI agent tool use (`agora-mcp-server`) |
 | `packages/api` | API server (Hono on Vercel) |
 | `packages/db` | Database schema and migrations (Drizzle + PostgreSQL + pgvector) |
 | `packages/portal` | Developer portal with auth and billing (Next.js) |
 | `packages/demo` | Demo application with AI chat agent (Next.js) |
-| `crawler/` | Data ingestion — Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
+| `crawler/` | Data ingestion -Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
 
 ---
 
