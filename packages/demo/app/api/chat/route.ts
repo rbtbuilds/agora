@@ -51,36 +51,57 @@ const searchProductsTool = tool({
   },
 });
 
-async function createStream(messages: UIMessage[]) {
-  const modelMessages = await convertToModelMessages(messages);
+function getModels() {
+  const models = [];
 
-  try {
-    // Gemini primary — reliable tool calling support
-    return streamText({
-      model: google("gemini-2.0-flash"),
-      system: SYSTEM_PROMPT,
-      messages: modelMessages,
-      tools: { searchProducts: searchProductsTool },
-      stopWhen: stepCountIs(3),
-    });
-  } catch (error: unknown) {
-    const status = (error as { status?: number })?.status;
-    if (status === 429) {
-      // Groq fallback on rate limit
-      return streamText({
-        model: groq("llama-3.3-70b-versatile"),
+  // Try Gemini first (better tool calling)
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    models.push(google("gemini-2.0-flash"));
+  }
+
+  // Then Groq
+  if (process.env.GROQ_API_KEY) {
+    models.push(groq("llama-3.3-70b-versatile"));
+  }
+
+  return models;
+}
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  const modelMessages = await convertToModelMessages(messages);
+  const models = getModels();
+
+  if (models.length === 0) {
+    return new Response(
+      `data: {"type":"error","errorText":"No AI provider configured. Set GROQ_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY."}\n\ndata: [DONE]\n\n`,
+      { headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
+
+  let lastError: unknown;
+
+  for (const model of models) {
+    try {
+      const result = streamText({
+        model,
         system: SYSTEM_PROMPT,
         messages: modelMessages,
         tools: { searchProducts: searchProductsTool },
         stopWhen: stepCountIs(3),
       });
+      return result.toUIMessageStreamResponse();
+    } catch (error) {
+      lastError = error;
+      console.error(`Model failed, trying next:`, error);
+      continue;
     }
-    throw error;
   }
-}
 
-export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
-  const result = await createStream(messages);
-  return result.toUIMessageStreamResponse();
+  // All models failed
+  const errorMsg = lastError instanceof Error ? lastError.message : "All AI providers failed";
+  return new Response(
+    `data: {"type":"error","errorText":"${errorMsg.replace(/"/g, '\\"')}"}\n\ndata: [DONE]\n\n`,
+    { headers: { "Content-Type": "text/event-stream" } }
+  );
 }
