@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { authMiddleware } from "../packages/api/src/middleware/auth.js";
 import { productsRouter } from "../packages/api/src/routes/products.js";
 import { categoriesRouter } from "../packages/api/src/routes/categories.js";
+import { storesRouter } from "../packages/api/src/routes/stores.js";
 
 const app = new Hono();
 
@@ -204,6 +205,7 @@ app.get("/", (c) => {
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
+app.route("/v1/stores", storesRouter);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
