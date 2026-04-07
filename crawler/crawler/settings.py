@@ -20,3 +20,15 @@ DOWNLOAD_HANDLERS = {
 }
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 PLAYWRIGHT_BROWSER_TYPE = "chromium"
+
+# Anti-bot middlewares (for Amazon crawling)
+DOWNLOADER_MIDDLEWARES = {
+    "crawler.middlewares.antibot.RandomUserAgentMiddleware": 400,
+    "crawler.middlewares.antibot.RandomDelayMiddleware": 410,
+    "crawler.middlewares.antibot.PlaywrightStealthMiddleware": 420,
+}
+
+# Amazon-specific tuning
+CONCURRENT_REQUESTS_PER_DOMAIN = 2
+RETRY_TIMES = 3
+RETRY_HTTP_CODES = [403, 429, 503]

@@ -9,6 +9,7 @@ dependencies = [
     "psycopg2-binary>=2.9",
     "pgvector>=0.3",
     "openai>=1.50",
+    "playwright-stealth>=1.0.6",
 ]
 
 [project.optional-dependencies]
