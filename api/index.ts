@@ -6,6 +6,7 @@ import { analyticsMiddleware } from "../packages/api/src/middleware/analytics.js
 import { productsRouter } from "../packages/api/src/routes/products.js";
 import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 import { storesRouter } from "../packages/api/src/routes/stores.js";
+import { registryRouter } from "../packages/api/src/routes/registry.js";
 
 const app = new Hono();
 
@@ -546,6 +547,9 @@ app.get("/.well-known/agora.json", (c) => {
 app.get("/openapi.json", (c) => {
   return c.json(openapiSpec);
 });
+
+// Public registry routes — mounted BEFORE auth middleware
+app.route("/v1/registry", registryRouter);
 
 app.use("/v1/*", authMiddleware);
 app.use("/v1/products/*", analyticsMiddleware);
