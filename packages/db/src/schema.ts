@@ -18,6 +18,29 @@ export const availabilityEnum = pgEnum("availability", [
   "unknown",
 ]);
 
+export const storeSourceEnum = pgEnum("store_source", ["native", "scraped"]);
+
+export const stores = pgTable(
+  "stores",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    url: text("url").notNull().unique(),
+    agoraJsonUrl: text("agora_json_url"),
+    source: storeSourceEnum("source").notNull(),
+    capabilities: jsonb("capabilities").$type<Record<string, string>>().default({}),
+    productCount: integer("product_count").notNull().default(0),
+    validationScore: integer("validation_score"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    status: varchar("status", { length: 20 }).notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_stores_source").on(table.source),
+    index("idx_stores_status").on(table.status),
+  ]
+);
+
 export const products = pgTable(
   "products",
   {
@@ -41,11 +64,13 @@ export const products = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    storeId: text("store_id").references(() => stores.id, { onDelete: "set null" }),
   },
   (table) => [
     index("idx_products_source").on(table.source),
     index("idx_products_availability").on(table.availability),
     index("idx_products_source_url").on(table.sourceUrl),
+    index("idx_products_store").on(table.storeId),
   ]
 );
 
