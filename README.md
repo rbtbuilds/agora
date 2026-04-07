@@ -4,7 +4,7 @@
 
 The internet was built for human browsers. AI agents need to discover, search, and transact with stores programmatically — but today's web has no standard interface for them. Agora defines that interface.
 
-Agora is an open protocol, a public registry, a product search API, a TypeScript SDK, an MCP server, and a validator. Stores adopt the protocol. Agents use the tools to transact across all of them.
+Agora is an open protocol, a commerce transaction layer, a public registry, and a complete toolkit for AI agents. Stores adopt the protocol. Agents discover, search, compare, and purchase across all of them through a single API.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml)
@@ -29,7 +29,9 @@ Stores declare agent-readiness by serving `agora.json` at `/.well-known/agora.js
   "capabilities": {
     "products": "/api/agora/products",
     "product": "/api/agora/products/{id}",
-    "search": "/api/agora/search"
+    "search": "/api/agora/search",
+    "cart": "/api/agora/cart",
+    "checkout": "/api/agora/checkout"
   },
   "auth": { "type": "none" },
   "rate_limits": { "requests_per_minute": 60 },
@@ -37,15 +39,40 @@ Stores declare agent-readiness by serving `agora.json` at `/.well-known/agora.js
 }
 ```
 
-Capabilities are tiered. Start with a product feed (`products` + `product`). Add search, inventory, cart, and checkout as your infrastructure supports it. Agents discover what each store can do and act accordingly.
+Capabilities are tiered. Start with a product feed. Add search, cart, and checkout as your infrastructure supports it. Agents discover what each store can do and act accordingly.
 
 Full specification: [docs/protocol/spec.md](docs/protocol/spec.md) | Product schema: [docs/protocol/product-schema.md](docs/protocol/product-schema.md)
 
 ---
 
+## The Commerce Layer
+
+Agents don't just search — they buy. Agora provides a complete transaction flow with consumer-approved payments.
+
+```
+Consumer: "Buy me those hiking boots"
+Agent:    POST /v1/cart → adds product
+Agent:    POST /v1/checkout → initiates purchase
+Agora:    "Approve $89.99 at Allbirds?"
+Consumer: "Yes"
+Agent:    POST /v1/checkout/:id/approve
+Agora:    Charges card, creates order, notifies store
+Agent:    "Done! Order confirmed."
+```
+
+**How it works:**
+1. Consumers save a payment method with Agora (via Stripe)
+2. Agents build carts and request checkout
+3. Consumers approve purchases inline (agent asks directly) or via SMS/email link
+4. Agora charges the card and forwards the order to the store
+
+Agents cannot charge cards without consumer approval. Every purchase requires explicit consent. Approval tokens are single-use and expire in 15 minutes.
+
+---
+
 ## The Registry
 
-A public, searchable directory of every protocol-compliant store. No authentication required. Agents query the registry to discover stores without knowing their URLs.
+A public, searchable directory of every store on the network. No authentication required. Agents query the registry to discover stores without knowing their URLs.
 
 ```bash
 # Browse all stores
@@ -54,8 +81,8 @@ curl https://agora-ecru-chi.vercel.app/v1/registry
 # Search by name
 curl https://agora-ecru-chi.vercel.app/v1/registry?q=outdoor
 
-# Filter by source
-curl https://agora-ecru-chi.vercel.app/v1/registry?source=native
+# Filter and sort
+curl https://agora-ecru-chi.vercel.app/v1/registry?source=native&sort=score
 
 # Network stats
 curl https://agora-ecru-chi.vercel.app/v1/registry/stats
@@ -149,9 +176,10 @@ Getting started guide: [docs/protocol/getting-started.md](docs/protocol/getting-
 ### What Stores Get
 
 - **Listed in the public registry** — agents discover your store automatically
+- **Agent commerce** — agents can build carts and purchase from your store with consumer approval
 - **Analytics** — see how agents interact with your products (queries, views, trends)
 - **Trust score** — protocol compliance rating that agents use to prioritize stores
-- **Webhooks** — real-time notifications when agents search or view your products
+- **Webhooks** — real-time notifications for searches, product views, and orders
 - **Cross-store visibility** — your products appear in comparison results across the network
 
 ---
@@ -193,16 +221,37 @@ OpenAPI spec: [`/openapi.json`](https://agora-ecru-chi.vercel.app/openapi.json) 
 | `GET` | `/v1/registry/:id/analytics` | Weekly analytics breakdown |
 | `GET` | `/v1/adapter/shopify/:id/agora.json` | Adapted store manifest |
 | `GET` | `/v1/adapter/shopify/:id/products` | Adapted product feed |
+| `GET` | `/approve/:token` | Purchase approval page |
 
-### Authenticated (Bearer token)
+### Products and Search (auth required)
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/v1/products/search?q=...` | Search products |
 | `GET` | `/v1/products/:id` | Product detail |
 | `GET` | `/v1/products/:id/similar` | Similar products |
-| `GET` | `/v1/products/:id/compare` | Cross-store matches |
+| `GET` | `/v1/products/:id/compare` | Cross-store price comparison |
 | `GET` | `/v1/categories` | Product categories |
+
+### Commerce (auth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/cart` | Create a cart |
+| `GET` | `/v1/cart/:id` | View cart with items and subtotal |
+| `POST` | `/v1/cart/:id/items` | Add item to cart |
+| `DELETE` | `/v1/cart/:id/items/:itemId` | Remove item from cart |
+| `POST` | `/v1/checkout` | Initiate checkout (returns approval prompt) |
+| `POST` | `/v1/checkout/:id/approve` | Approve purchase |
+| `POST` | `/v1/checkout/:id/deny` | Deny purchase |
+| `GET` | `/v1/checkout/:id` | Check checkout status |
+| `GET` | `/v1/orders` | List orders |
+| `GET` | `/v1/orders/:id` | Order detail |
+
+### Stores and Webhooks (auth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
 | `POST` | `/v1/stores/register` | Register a store |
 | `POST` | `/v1/stores/:id/webhooks` | Create webhook |
 | `GET` | `/v1/stores/:id/webhooks` | List webhooks |
@@ -241,22 +290,20 @@ Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
 
 ## Status
 
-**22,000+ products** indexed across **52 stores**. Protocol v1.0.
+**22,000+ products** indexed across **52 stores**. Full commerce transaction layer. Protocol v1.0.
 
 | Metric | Value |
 |--------|-------|
 | Products | 22,562 |
 | Stores | 52 |
-| Shopify stores | 52 |
-| Protocol version | 1.0 |
-| API endpoints | 20 |
+| API endpoints | 30+ |
 | Test coverage | 50 tests |
+| Protocol version | 1.0 |
 
 **Roadmap:**
 - Semantic search with pgvector embeddings
+- Stripe live payment processing
 - Marketing site and custom domains
-- Cart and checkout protocol extensions
-- Stripe live billing
 - 100k+ products across 200+ stores
 
 ---
