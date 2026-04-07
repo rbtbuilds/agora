@@ -4,12 +4,7 @@ import { db, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
-    }),
-  ],
+  providers: [GitHub],
   callbacks: {
     async signIn({ profile }) {
       if (!profile?.id) return false;
