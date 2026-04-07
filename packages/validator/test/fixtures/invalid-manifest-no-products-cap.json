@@ -1,0 +1,5 @@
+{
+  "version": "1.0",
+  "store": { "name": "Bad Store", "url": "https://bad.example.com" },
+  "capabilities": { "search": "/search" }
+}

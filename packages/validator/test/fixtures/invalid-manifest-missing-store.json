@@ -1,0 +1,4 @@
+{
+  "version": "1.0",
+  "capabilities": { "products": "/products", "product": "/products/{id}" }
+}
