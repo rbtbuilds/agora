@@ -11,10 +11,10 @@
     "next": "^15",
     "react": "^19",
     "react-dom": "^19",
-    "ai": "^4",
-    "@ai-sdk/react": "^1",
-    "@ai-sdk/groq": "^1",
-    "@ai-sdk/google": "^1",
+    "ai": "^6",
+    "@ai-sdk/react": "^3",
+    "@ai-sdk/groq": "^3",
+    "@ai-sdk/google": "^3",
     "zod": "^3.25"
   },
   "devDependencies": {
