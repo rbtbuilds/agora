@@ -1,0 +1,28 @@
+{
+  "name": "@agora/portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx tailwindcss -i app/globals.css -o app/tailwind.css --watch & next dev --port 3002",
+    "build": "npx tailwindcss -i app/globals.css -o app/tailwind.css --minify && next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@agora/db": "*",
+    "next": "^15",
+    "next-auth": "5.0.0-beta.25",
+    "react": "^19",
+    "react-dom": "^19",
+    "stripe": "^17",
+    "drizzle-orm": "^0.39"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5.7",
+    "tailwindcss": "^3",
+    "postcss": "^8",
+    "autoprefixer": "^10"
+  }
+}
