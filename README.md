@@ -7,9 +7,10 @@
 Agora makes the web accessible to AI agents by providing a unified API, SDK, and MCP server for discovering, comparing, and purchasing products across e-commerce sites.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![npm: agora-sdk](https://img.shields.io/npm/v/agora-sdk?label=agora-sdk&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-sdk)
+[![npm: agora-mcp-server](https://img.shields.io/npm/v/agora-mcp-server?label=agora-mcp-server&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-mcp-server)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Hono](https://img.shields.io/badge/Hono-v4-orange?logo=hono&logoColor=white)](https://hono.dev/)
 
 [**Try the Demo →**](https://demo-five-coral-13.vercel.app) · [**Developer Portal →**](https://portal-opal-two.vercel.app) · [Getting Started](#getting-started) · [SDK Usage](#sdk-usage) · [MCP Server](#mcp-server) · [API Reference](#api-reference) · [Architecture](#architecture)
 
@@ -44,8 +45,8 @@ Agora crawls e-commerce sites and exposes a **single, unified API** that any AI 
 | Package | Description | Tech |
 |---------|-------------|------|
 | [`@agora/api`](packages/api) | REST API serving product data | TypeScript, Hono, Vercel |
-| [`@agora/sdk`](packages/sdk) | TypeScript SDK for agent developers | TypeScript, zero deps |
-| [`@agora/mcp`](packages/mcp) | MCP server for native AI agent integration | TypeScript, MCP SDK |
+| [`agora-sdk`](packages/sdk) | TypeScript SDK for agent developers | TypeScript, zero deps |
+| [`agora-mcp-server`](packages/mcp) | MCP server for native AI agent integration | TypeScript, MCP SDK |
 | [`@agora/db`](packages/db) | Database schema and client | Drizzle ORM, PostgreSQL, pgvector |
 | [`crawler`](crawler) | E-commerce site crawler | Python, Scrapy, Playwright |
 
@@ -89,11 +90,11 @@ npm run dev
 Install the SDK in your agent project:
 
 ```bash
-npm install @agora/sdk
+npm install agora-sdk
 ```
 
 ```typescript
-import { Agora } from '@agora/sdk'
+import { Agora } from 'agora-sdk'
 
 const agora = new Agora({ apiKey: 'ak_your_key' })
 
@@ -123,7 +124,7 @@ Add to your MCP config (e.g. Claude Code, Cursor, etc.):
   "mcpServers": {
     "agora": {
       "command": "npx",
-      "args": ["@agora/mcp"],
+      "args": ["agora-mcp-server"],
       "env": {
         "AGORA_API_KEY": "ak_your_key"
       }

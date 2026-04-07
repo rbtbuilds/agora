@@ -1,6 +1,14 @@
 {
-  "name": "@agora/sdk",
+  "name": "agora-sdk",
   "version": "0.1.0",
+  "description": "TypeScript SDK for the Agora API — search, compare, and purchase products across e-commerce stores",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rbtbuilds/agora",
+    "directory": "packages/sdk"
+  },
+  "keywords": ["agora", "ai-agents", "e-commerce", "product-search", "sdk", "mcp", "ai-infrastructure"],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

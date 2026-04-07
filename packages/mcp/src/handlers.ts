@@ -1,4 +1,4 @@
-import { Agora, type Product } from "@agora/sdk";
+import { Agora, type Product } from "agora-sdk";
 
 let client: Agora | null = null;
 

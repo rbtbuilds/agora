@@ -1,6 +1,14 @@
 {
-  "name": "@agora/mcp",
+  "name": "agora-mcp-server",
   "version": "0.1.0",
+  "description": "MCP server for Agora — lets AI agents search and discover products via Model Context Protocol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rbtbuilds/agora",
+    "directory": "packages/mcp"
+  },
+  "keywords": ["agora", "mcp", "model-context-protocol", "ai-agents", "e-commerce", "product-search"],
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -11,7 +19,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@agora/sdk": "*",
+    "agora-sdk": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1",
     "zod": "^3.25.76"
   },
