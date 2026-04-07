@@ -225,3 +225,105 @@ export const webhooks = pgTable(
     index("idx_webhooks_store").on(table.storeId),
   ]
 );
+
+export const consumers = pgTable(
+  "consumers",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    stripeCustomerId: text("stripe_customer_id"),
+    phone: text("phone"),
+    email: text("email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_consumers_user").on(table.userId),
+  ]
+);
+
+export const paymentMethods = pgTable(
+  "payment_methods",
+  {
+    id: text("id").primaryKey(),
+    consumerId: text("consumer_id").notNull().references(() => consumers.id, { onDelete: "cascade" }),
+    stripePaymentMethodId: text("stripe_payment_method_id").notNull(),
+    last4: varchar("last4", { length: 4 }).notNull(),
+    brand: varchar("brand", { length: 20 }).notNull(),
+    isDefault: integer("is_default").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_payment_methods_consumer").on(table.consumerId),
+  ]
+);
+
+export const carts = pgTable(
+  "carts",
+  {
+    id: text("id").primaryKey(),
+    consumerId: text("consumer_id").notNull().references(() => consumers.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_carts_consumer").on(table.consumerId),
+    index("idx_carts_status").on(table.status),
+  ]
+);
+
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    id: serial("id").primaryKey(),
+    cartId: text("cart_id").notNull().references(() => carts.id, { onDelete: "cascade" }),
+    productId: text("product_id").notNull().references(() => products.id),
+    storeId: text("store_id").references(() => stores.id),
+    quantity: integer("quantity").notNull().default(1),
+    priceAtAdd: numeric("price_at_add", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_cart_items_cart").on(table.cartId),
+  ]
+);
+
+export const checkouts = pgTable(
+  "checkouts",
+  {
+    id: text("id").primaryKey(),
+    cartId: text("cart_id").notNull().references(() => carts.id),
+    consumerId: text("consumer_id").notNull().references(() => consumers.id),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    approvalToken: text("approval_token").notNull().unique(),
+    approvalMode: varchar("approval_mode", { length: 10 }).notNull().default("inline"),
+    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    paymentMethodId: text("payment_method_id").references(() => paymentMethods.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_checkouts_consumer").on(table.consumerId),
+    index("idx_checkouts_status").on(table.status),
+    index("idx_checkouts_token").on(table.approvalToken),
+  ]
+);
+
+export const orders = pgTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    checkoutId: text("checkout_id").notNull().references(() => checkouts.id),
+    consumerId: text("consumer_id").notNull().references(() => consumers.id),
+    storeId: text("store_id").references(() => stores.id),
+    status: varchar("status", { length: 20 }).notNull().default("confirmed"),
+    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+    items: jsonb("items").$type<Array<{ productId: string; name: string; quantity: number; price: string }>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_orders_consumer").on(table.consumerId),
+    index("idx_orders_store").on(table.storeId),
+    index("idx_orders_checkout").on(table.checkoutId),
+  ]
+);
