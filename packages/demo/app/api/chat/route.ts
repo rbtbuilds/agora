@@ -5,7 +5,6 @@ import {
   convertToModelMessages,
   stepCountIs,
 } from "ai";
-import { groq } from "@ai-sdk/groq";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
@@ -54,12 +53,6 @@ const searchProductsTool = tool({
 function getModels() {
   const models = [];
 
-  // Groq first (working quota, fast inference)
-  if (process.env.GROQ_API_KEY) {
-    models.push(groq("meta-llama/llama-4-scout-17b-16e-instruct"));
-  }
-
-  // Gemini fallback
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     models.push(google("gemini-2.0-flash"));
   }
