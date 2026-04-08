@@ -18,12 +18,12 @@
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "drizzle-orm": "^0.39",
+    "drizzle-orm": "^0.45",
     "postgres": "^3.4"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "drizzle-kit": "^0.30",
+    "drizzle-kit": "^0.31",
     "typescript": "^5.7"
   }
 }

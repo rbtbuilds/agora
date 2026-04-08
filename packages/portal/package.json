@@ -14,7 +14,7 @@
     "react": "^19",
     "react-dom": "^19",
     "stripe": "^17",
-    "drizzle-orm": "^0.39"
+    "drizzle-orm": "^0.45"
   },
   "devDependencies": {
     "@types/node": "^22",

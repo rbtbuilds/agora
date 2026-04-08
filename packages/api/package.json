@@ -13,7 +13,7 @@
   "dependencies": {
     "@agora/db": "*",
     "hono": "^4",
-    "drizzle-orm": "^0.39"
+    "drizzle-orm": "^0.45"
   },
   "devDependencies": {
     "tsx": "^4",

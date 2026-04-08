@@ -66,8 +66,9 @@ export async function POST(req: Request) {
   const models = getModels();
 
   if (models.length === 0) {
+    const noProviderPayload = JSON.stringify({ type: "error", errorText: "No AI provider configured. Set GOOGLE_GENERATIVE_AI_API_KEY." });
     return new Response(
-      `data: {"type":"error","errorText":"No AI provider configured. Set GROQ_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY."}\n\ndata: [DONE]\n\n`,
+      `data: ${noProviderPayload}\n\ndata: [DONE]\n\n`,
       { headers: { "Content-Type": "text/event-stream" } }
     );
   }
@@ -93,8 +94,9 @@ export async function POST(req: Request) {
 
   // All models failed
   const errorMsg = lastError instanceof Error ? lastError.message : "All AI providers failed";
+  const safePayload = JSON.stringify({ type: "error", errorText: errorMsg });
   return new Response(
-    `data: {"type":"error","errorText":"${errorMsg.replace(/"/g, '\\"')}"}\n\ndata: [DONE]\n\n`,
+    `data: ${safePayload}\n\ndata: [DONE]\n\n`,
     { headers: { "Content-Type": "text/event-stream" } }
   );
 }
