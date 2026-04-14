@@ -539,7 +539,7 @@ app.get("/.well-known/agora.json", (c) => {
     },
     auth: {
       type: "bearer",
-      registration: "https://portal-opal-two.vercel.app",
+      registration: "https://marketing-six-kohl.vercel.app",
     },
     rate_limits: {
       requests_per_minute: 60,

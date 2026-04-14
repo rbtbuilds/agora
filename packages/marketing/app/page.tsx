@@ -383,10 +383,10 @@ export default function Home() {
                 API Playground
               </a>
               <a
-                href="https://portal-opal-two.vercel.app"
+                href="mailto:ceo@bentolabs.co.uk?subject=Agora%20API%20Key%20Request"
                 className="inline-flex items-center px-6 py-3 rounded-lg border border-border text-sm font-semibold text-secondary transition-all duration-200 hover:border-secondary hover:text-white"
               >
-                Get API Keys
+                Request API Keys
               </a>
             </div>
           </div>
@@ -609,7 +609,7 @@ export default function Home() {
               {[
                 { label: "GitHub", href: "https://github.com/rbtbuilds/agora" },
                 { label: "API Playground", href: "https://agora-ecru-chi.vercel.app/playground" },
-                { label: "Developer Portal", href: "https://portal-opal-two.vercel.app" },
+                { label: "Developer Portal", href: "mailto:ceo@bentolabs.co.uk?subject=Agora%20Portal%20Access" },
                 { label: "Demo", href: "https://demo-five-coral-13.vercel.app" },
                 { label: "Protocol Spec", href: "https://github.com/rbtbuilds/agora/blob/main/docs/protocol/spec.md" },
               ].map((link) => (
