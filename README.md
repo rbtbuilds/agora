@@ -11,7 +11,7 @@ Agora is an open protocol, a commerce transaction layer, a public registry, and 
 [![npm: agora-sdk](https://img.shields.io/npm/v/agora-sdk?label=agora-sdk&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-sdk)
 [![npm: agora-mcp-server](https://img.shields.io/npm/v/agora-mcp-server?label=agora-mcp-server&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-mcp-server)
 
-[**Live API**](https://agora-ecru-chi.vercel.app) · [**API Playground**](https://agora-ecru-chi.vercel.app/playground) · [**Registry**](https://agora-ecru-chi.vercel.app/v1/registry/stats) · [**Demo**](https://demo-five-coral-13.vercel.app) · [**Portal**](https://portal-opal-two.vercel.app)
+[**Live API**](https://agora-ecru-chi.vercel.app) · [**API Playground**](https://agora-ecru-chi.vercel.app/playground) · [**Registry**](https://agora-ecru-chi.vercel.app/v1/registry/stats) · [**Demo**](https://demo-five-coral-13.vercel.app) · [**Marketing**](https://marketing-six-kohl.vercel.app)
 
 ---
 

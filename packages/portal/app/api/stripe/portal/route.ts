@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No billing account" }, { status: 400 });
   }
 
-  const origin = req.headers.get("origin") ?? "https://portal-opal-two.vercel.app";
+  const origin = req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3002";
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: user[0].stripeCustomerId,

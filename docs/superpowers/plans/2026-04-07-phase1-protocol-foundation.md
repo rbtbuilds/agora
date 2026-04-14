@@ -1667,7 +1667,7 @@ app.get("/.well-known/agora.json", (c) => {
     },
     auth: {
       type: "bearer",
-      registration: "https://portal-opal-two.vercel.app",
+      registration: "https://marketing-six-kohl.vercel.app",
     },
     rate_limits: {
       requests_per_minute: 60,
@@ -1830,7 +1830,7 @@ const manifest = {
   version: '1.0',
   store: { name: 'Agora', url: 'https://agora-ecru-chi.vercel.app' },
   capabilities: { products: '/v1/products/search?q=*', product: '/v1/products/{id}', search: '/v1/products/search' },
-  auth: { type: 'bearer', registration: 'https://portal-opal-two.vercel.app' },
+  auth: { type: 'bearer', registration: 'https://marketing-six-kohl.vercel.app' },
   rate_limits: { requests_per_minute: 60, burst: 10 },
   data_policy: { cache_ttl: 3600, attribution_required: false, commercial_use: true },
 };
