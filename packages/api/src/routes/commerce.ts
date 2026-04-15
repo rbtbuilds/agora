@@ -23,12 +23,14 @@ commerceRouter.post("/cart", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'consumerId' is required" } }, 400);
   }
 
+  const ownerId = c.get("userId") as string;
   const id = `cart_${crypto.randomBytes(12).toString("hex")}`;
   const now = new Date();
 
   await db.insert(carts).values({
     id,
     consumerId: body.consumerId,
+    ownerId,
     status: "open",
     createdAt: now,
   } as any);
@@ -37,6 +39,7 @@ commerceRouter.post("/cart", async (c) => {
     data: {
       id,
       consumerId: body.consumerId,
+      ownerId,
       status: "open",
       createdAt: now.toISOString(),
     },
@@ -46,11 +49,12 @@ commerceRouter.post("/cart", async (c) => {
 // GET /cart/:id — View cart with items and subtotal
 commerceRouter.get("/cart/:id", async (c) => {
   const cartId = c.req.param("id");
+  const ownerId = c.get("userId") as string;
 
   const cartRows = await db
     .select()
     .from(carts)
-    .where(eq(carts.id, cartId))
+    .where(and(eq(carts.id, cartId), eq(carts.ownerId, ownerId)))
     .limit(1);
 
   if (cartRows.length === 0) {
@@ -115,10 +119,17 @@ commerceRouter.post("/cart/:id/items", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'productId' is required" } }, 400);
   }
 
-  // Verify cart exists
+  const ownerId = c.get("userId") as string;
+
+  // Verify cart exists and belongs to caller
   const cartRows = await db.select().from(carts).where(eq(carts.id, cartId)).limit(1);
-  if (cartRows.length === 0) {
+  if (cartRows.length === 0 || cartRows[0].ownerId !== ownerId) {
     return c.json({ error: { code: "NOT_FOUND", message: `Cart ${cartId} not found` } }, 404);
+  }
+
+  const cart = cartRows[0];
+  if (cart.status !== "open") {
+    return c.json({ error: { code: "CONFLICT", message: "Cart is not open" } }, 409);
   }
 
   // Look up product to get price and storeId
@@ -159,6 +170,18 @@ commerceRouter.delete("/cart/:id/items/:itemId", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Invalid itemId" } }, 400);
   }
 
+  const ownerId = c.get("userId") as string;
+
+  // Verify cart exists and belongs to caller
+  const cartRows = await db.select().from(carts).where(eq(carts.id, cartId)).limit(1);
+  if (cartRows.length === 0 || cartRows[0].ownerId !== ownerId) {
+    return c.json({ error: { code: "NOT_FOUND", message: `Cart ${cartId} not found` } }, 404);
+  }
+
+  if (cartRows[0].status !== "open") {
+    return c.json({ error: { code: "CONFLICT", message: "Cart is not open" } }, 409);
+  }
+
   await db.delete(cartItems).where(and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId)) as any);
 
   return c.json({ data: { deleted: true } });
@@ -189,16 +212,13 @@ commerceRouter.post("/checkout", async (c) => {
     );
   }
 
-  // SECURITY TODO: consumerId is currently self-asserted. A full fix requires
-  // linking API keys to consumer identities so that callers can only act on
-  // behalf of consumers they own. Until then, any valid API key can create
-  // checkouts for any consumerId.
+  const ownerId = c.get("userId") as string;
 
-  // Verify cart exists and belongs to consumer
+  // Verify cart exists, belongs to consumer, and is owned by caller
   const cartRows = await db
     .select()
     .from(carts)
-    .where(and(eq(carts.id, body.cartId), eq(carts.consumerId, body.consumerId)))
+    .where(and(eq(carts.id, body.cartId), eq(carts.consumerId, body.consumerId), eq(carts.ownerId, ownerId)))
     .limit(1);
 
   if (cartRows.length === 0) {
@@ -253,6 +273,7 @@ commerceRouter.post("/checkout", async (c) => {
     id: checkoutId,
     cartId: body.cartId,
     consumerId: body.consumerId,
+    ownerId,
     status: "pending",
     approvalToken,
     approvalMode,
@@ -269,7 +290,7 @@ commerceRouter.post("/checkout", async (c) => {
   return c.json({
     data: {
       id: checkoutId,
-      approvalToken,
+      ...(approvalMode === "inline" ? { approvalToken } : {}),
       total: totalStr,
       prompt: `Approve $${totalStr} at ${storeName}?`,
       expiresAt: expiresAt.toISOString(),
@@ -293,10 +314,12 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'approvalToken' is required" } }, 400);
   }
 
+  const ownerId = c.get("userId") as string;
+
   const checkoutRows = await db
     .select()
     .from(checkouts)
-    .where(eq(checkouts.id, checkoutId))
+    .where(and(eq(checkouts.id, checkoutId), eq(checkouts.ownerId, ownerId)))
     .limit(1);
 
   if (checkoutRows.length === 0) {
@@ -388,6 +411,7 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
       id: orderId,
       checkoutId,
       consumerId: checkout.consumerId,
+      ownerId,
       storeId,
       status: "confirmed",
       totalAmount: orderTotalStr,
@@ -442,10 +466,12 @@ commerceRouter.post("/checkout/:id/deny", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'approvalToken' is required" } }, 400);
   }
 
+  const ownerId = c.get("userId") as string;
+
   const checkoutRows = await db
     .select()
     .from(checkouts)
-    .where(eq(checkouts.id, checkoutId))
+    .where(and(eq(checkouts.id, checkoutId), eq(checkouts.ownerId, ownerId)))
     .limit(1);
 
   if (checkoutRows.length === 0) {
@@ -482,11 +508,12 @@ commerceRouter.post("/checkout/:id/deny", async (c) => {
 // GET /checkout/:id — Check status
 commerceRouter.get("/checkout/:id", async (c) => {
   const checkoutId = c.req.param("id");
+  const ownerId = c.get("userId") as string;
 
   const checkoutRows = await db
     .select()
     .from(checkouts)
-    .where(eq(checkouts.id, checkoutId))
+    .where(and(eq(checkouts.id, checkoutId), eq(checkouts.ownerId, ownerId)))
     .limit(1);
 
   if (checkoutRows.length === 0) {
@@ -504,6 +531,7 @@ commerceRouter.get("/checkout/:id", async (c) => {
 // GET /orders — List orders for a consumer
 commerceRouter.get("/orders", async (c) => {
   const consumerId = c.req.query("consumerId");
+  const ownerId = c.get("userId") as string;
 
   if (!consumerId) {
     return c.json(
@@ -515,7 +543,7 @@ commerceRouter.get("/orders", async (c) => {
   const orderRows = await db
     .select()
     .from(orders)
-    .where(eq(orders.consumerId, consumerId))
+    .where(and(eq(orders.consumerId, consumerId), eq(orders.ownerId, ownerId)))
     .orderBy(desc(orders.createdAt));
 
   return c.json({
@@ -527,11 +555,12 @@ commerceRouter.get("/orders", async (c) => {
 // GET /orders/:id — Order detail
 commerceRouter.get("/orders/:id", async (c) => {
   const orderId = c.req.param("id");
+  const ownerId = c.get("userId") as string;
 
   const orderRows = await db
     .select()
     .from(orders)
-    .where(eq(orders.id, orderId))
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, ownerId)))
     .limit(1);
 
   if (orderRows.length === 0) {

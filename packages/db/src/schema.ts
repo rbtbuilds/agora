@@ -262,11 +262,13 @@ export const carts = pgTable(
   {
     id: text("id").primaryKey(),
     consumerId: text("consumer_id").notNull().references(() => consumers.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("open"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_carts_consumer").on(table.consumerId),
+    index("idx_carts_owner").on(table.ownerId),
     index("idx_carts_status").on(table.status),
   ]
 );
@@ -293,6 +295,7 @@ export const checkouts = pgTable(
     id: text("id").primaryKey(),
     cartId: text("cart_id").notNull().references(() => carts.id),
     consumerId: text("consumer_id").notNull().references(() => consumers.id),
+    ownerId: text("owner_id").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("pending"),
     approvalToken: text("approval_token").notNull().unique(),
     approvalMode: varchar("approval_mode", { length: 10 }).notNull().default("inline"),
@@ -304,6 +307,7 @@ export const checkouts = pgTable(
   },
   (table) => [
     index("idx_checkouts_consumer").on(table.consumerId),
+    index("idx_checkouts_owner").on(table.ownerId),
     index("idx_checkouts_status").on(table.status),
     index("idx_checkouts_token").on(table.approvalToken),
   ]
@@ -315,6 +319,7 @@ export const orders = pgTable(
     id: text("id").primaryKey(),
     checkoutId: text("checkout_id").notNull().references(() => checkouts.id),
     consumerId: text("consumer_id").notNull().references(() => consumers.id),
+    ownerId: text("owner_id").notNull(),
     storeId: text("store_id").references(() => stores.id),
     status: varchar("status", { length: 20 }).notNull().default("confirmed"),
     totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
@@ -323,6 +328,7 @@ export const orders = pgTable(
   },
   (table) => [
     index("idx_orders_consumer").on(table.consumerId),
+    index("idx_orders_owner").on(table.ownerId),
     index("idx_orders_store").on(table.storeId),
     index("idx_orders_checkout").on(table.checkoutId),
   ]
