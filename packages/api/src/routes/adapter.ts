@@ -7,8 +7,10 @@ import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
 // Public router — no auth required (serves the manifest for external consumers)
 const adapterPublicRouter = new Hono();
 
+import type { AppEnv } from "../types.js";
+
 // Protected router — auth required
-const adapterRouter = new Hono();
+const adapterRouter = new Hono<AppEnv>();
 
 function generateStoreId(url: string): string {
   return `str_${crypto.createHash("sha256").update(url).digest("hex").slice(0, 12)}`;

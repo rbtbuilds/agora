@@ -3,8 +3,9 @@ import { db, stores, webhooks } from "@agora/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import crypto from "node:crypto";
 import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
+import type { AppEnv } from "../types.js";
 
-const storesRouter = new Hono();
+const storesRouter = new Hono<AppEnv>();
 
 function generateStoreId(url: string): string {
   const hash = crypto.createHash("sha256").update(url).digest("hex").slice(0, 12);

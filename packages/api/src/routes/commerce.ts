@@ -3,8 +3,9 @@ import crypto from "node:crypto";
 import { db, carts, cartItems, checkouts, orders, products, stores, consumers, paymentMethods } from "@agora/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
+import type { AppEnv } from "../types.js";
 
-const commerceRouter = new Hono();
+const commerceRouter = new Hono<AppEnv>();
 
 // ---------------------------------------------------------------------------
 // Cart

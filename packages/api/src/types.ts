@@ -1,3 +1,10 @@
+export type AppEnv = {
+  Variables: {
+    apiKey: string;
+    userId: string;
+  };
+};
+
 export interface ApiResponse<T> {
   data: T;
   meta: {

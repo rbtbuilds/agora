@@ -9,7 +9,9 @@ import { registryRouter } from "./routes/registry.js";
 import { adapterRouter, adapterPublicRouter } from "./routes/adapter.js";
 import { commerceRouter } from "./routes/commerce.js";
 
-const app = new Hono();
+import type { AppEnv } from "./types.js";
+
+const app = new Hono<AppEnv>();
 
 app.use("*", cors({
   origin: [
