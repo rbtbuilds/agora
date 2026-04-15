@@ -70,10 +70,17 @@ describe("e2e smoke tests", () => {
     expect(body.error.code).toBe("BAD_REQUEST");
   });
 
-  it("CORS headers are present", async () => {
+  it("CORS headers are present for allowed origins", async () => {
+    const res = await app.request("/health", {
+      headers: { Origin: "https://agora-portal.vercel.app" },
+    });
+    expect(res.headers.get("access-control-allow-origin")).toBe("https://agora-portal.vercel.app");
+  });
+
+  it("CORS rejects unknown origins", async () => {
     const res = await app.request("/health", {
       headers: { Origin: "https://example.com" },
     });
-    expect(res.headers.get("access-control-allow-origin")).toBeTruthy();
+    expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });
