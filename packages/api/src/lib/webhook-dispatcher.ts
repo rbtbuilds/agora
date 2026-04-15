@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { db, webhooks } from "@agora/db";
 import { eq } from "drizzle-orm";
+import { safeFetch } from "./url-validator.js";
 
 interface WebhookEvent {
   event: string;
@@ -31,7 +32,7 @@ export async function dispatchWebhooks(event: WebhookEvent): Promise<void> {
       .update(payload)
       .digest("hex");
 
-    fetch(hook.url, {
+    safeFetch(hook.url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db, stores } from "@agora/db";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
-import { validateExternalUrl } from "../lib/url-validator.js";
+import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
 
 const adapterRouter = new Hono();
 
@@ -37,7 +37,7 @@ adapterRouter.post("/shopify", async (c) => {
 
   try {
     // Try meta.json for store info
-    const metaRes = await fetch(`${storeUrl}/meta.json`, {
+    const metaRes = await safeFetch(`${storeUrl}/meta.json`, {
       headers: { "User-Agent": "Agora Adapter/1.0" },
     });
     if (metaRes.ok) {
@@ -49,7 +49,7 @@ adapterRouter.post("/shopify", async (c) => {
 
   // Verify products.json exists
   try {
-    const productsRes = await fetch(`${storeUrl}/products.json?limit=1`, {
+    const productsRes = await safeFetch(`${storeUrl}/products.json?limit=1`, {
       headers: { "User-Agent": "Agora Adapter/1.0" },
     });
     if (!productsRes.ok) {
@@ -173,7 +173,7 @@ adapterRouter.get("/shopify/:storeId/products", async (c) => {
   const storeUrl = store[0].url;
 
   try {
-    const res = await fetch(`${storeUrl}/products.json?limit=${limit}&page=${page}`, {
+    const res = await safeFetch(`${storeUrl}/products.json?limit=${limit}&page=${page}`, {
       headers: { "User-Agent": "Agora Adapter/1.0" },
     });
     if (!res.ok) {
@@ -198,6 +198,11 @@ adapterRouter.get("/shopify/:storeId/products/:handle", async (c) => {
   const storeId = c.req.param("storeId");
   const handle = c.req.param("handle");
 
+  // Validate handle to prevent path traversal (Shopify handle format only)
+  if (!/^[a-zA-Z0-9_-]+$/.test(handle)) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Invalid product handle" } }, 400);
+  }
+
   const store = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
   if (store.length === 0) {
     return c.json({ error: { code: "NOT_FOUND", message: "Store not found" } }, 404);
@@ -206,7 +211,7 @@ adapterRouter.get("/shopify/:storeId/products/:handle", async (c) => {
   const storeUrl = store[0].url;
 
   try {
-    const res = await fetch(`${storeUrl}/products/${handle}.json`, {
+    const res = await safeFetch(`${storeUrl}/products/${handle}.json`, {
       headers: { "User-Agent": "Agora Adapter/1.0" },
     });
     if (!res.ok) {

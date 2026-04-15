@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db, stores, webhooks } from "@agora/db";
 import { eq, desc, sql } from "drizzle-orm";
 import crypto from "node:crypto";
-import { validateExternalUrl } from "../lib/url-validator.js";
+import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
 
 const storesRouter = new Hono();
 
@@ -61,7 +61,7 @@ storesRouter.post("/register", async (c) => {
 
   try {
     const manifestUrl = `${storeUrl}/.well-known/agora.json`;
-    const res = await fetch(manifestUrl);
+    const res = await safeFetch(manifestUrl);
     if (res.ok) {
       const manifest = await res.json();
       if (manifest?.version === "1.0" && manifest?.store?.name) {
