@@ -11,7 +11,26 @@ import { commerceRouter } from "./routes/commerce.js";
 
 const app = new Hono();
 
-app.use("*", cors());
+app.use("*", cors({
+  origin: [
+    "https://agora-portal.vercel.app",
+    "https://demo-five-coral-13.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ],
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+  maxAge: 86400,
+}));
+
+// Security headers
+app.use("*", async (c, next) => {
+  await next();
+  c.res.headers.set("X-Content-Type-Options", "nosniff");
+  c.res.headers.set("X-Frame-Options", "DENY");
+  c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+});
+
 app.use("*", bodyLimit({ maxSize: 100 * 1024 })); // 100KB
 
 // Public registry routes — mounted BEFORE auth middleware

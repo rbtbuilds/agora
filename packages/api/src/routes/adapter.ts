@@ -14,6 +14,10 @@ function generateStoreId(url: string): string {
   return `str_${crypto.createHash("sha256").update(url).digest("hex").slice(0, 12)}`;
 }
 
+function sanitizeText(text: string): string {
+  return text.replace(/<[^>]+>/g, "").trim();
+}
+
 // POST /v1/adapter/shopify — Generate agora.json for a Shopify store
 adapterRouter.post("/shopify", async (c) => {
   let body: { url?: string };
@@ -46,7 +50,7 @@ adapterRouter.post("/shopify", async (c) => {
     });
     if (metaRes.ok) {
       const meta = await metaRes.json();
-      if (meta.name) storeName = meta.name;
+      if (meta.name) storeName = sanitizeText(meta.name);
       if (meta.description) storeDescription = meta.description;
     }
   } catch {}
@@ -242,9 +246,9 @@ function normalizeShopifyProduct(p: any, storeUrl: string) {
   return {
     id: p.handle ?? String(p.id),
     url: `${storeUrl}/products/${p.handle}`,
-    name: p.title ?? "",
-    description: (p.body_html ?? "").replace(/<[^>]+>/g, " ").trim().slice(0, 2000),
-    brand: p.vendor ?? null,
+    name: sanitizeText(p.title ?? ""),
+    description: sanitizeText((p.body_html ?? "").replace(/<[^>]+>/g, " ")).slice(0, 2000),
+    brand: p.vendor ? sanitizeText(p.vendor) : null,
     pricing: price ? {
       amount: parseFloat(price).toFixed(2),
       currency: "USD",

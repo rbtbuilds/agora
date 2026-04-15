@@ -67,7 +67,7 @@ storesRouter.post("/register", async (c) => {
       const manifest = await res.json();
       if (manifest?.version === "1.0" && manifest?.store?.name) {
         source = "native";
-        storeName = manifest.store.name;
+        storeName = (manifest.store.name as string).replace(/<[^>]+>/g, "").trim();
         agoraJsonUrl = manifestUrl;
         capabilities = manifest.capabilities ?? {};
         let score = 50;
