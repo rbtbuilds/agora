@@ -106,6 +106,76 @@ export const openapiSpec = {
         },
         required: ["error"],
       },
+      Cart: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          consumerId: { type: "string" },
+          status: { type: "string", enum: ["open", "checked_out", "abandoned"] },
+          createdAt: { type: "string", format: "date-time" },
+          items: { type: "array", items: { $ref: "#/components/schemas/CartItem" } },
+          subtotal: { type: "string" },
+        },
+      },
+      CartItem: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          productId: { type: "string" },
+          storeId: { type: ["string", "null"] },
+          name: { type: ["string", "null"] },
+          price: { type: "string" },
+          quantity: { type: "integer" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      Checkout: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          status: { type: "string", enum: ["pending", "completed", "denied"] },
+          total: { type: "string" },
+          prompt: { type: "string" },
+          expiresAt: { type: "string", format: "date-time" },
+          approvalToken: { type: "string", description: "Only returned when approvalMode=inline" },
+        },
+      },
+      Order: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          checkoutId: { type: "string" },
+          consumerId: { type: "string" },
+          storeId: { type: ["string", "null"] },
+          status: { type: "string" },
+          totalAmount: { type: "string" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                productId: { type: "string" },
+                name: { type: "string" },
+                quantity: { type: "integer" },
+                price: { type: "string" },
+              },
+              required: ["productId", "name", "quantity", "price"],
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      Webhook: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          storeId: { type: "string" },
+          url: { type: "string", format: "uri" },
+          events: { type: "array", items: { type: "string" } },
+          secret: { type: "string", description: "Returned in plaintext only on creation" },
+          active: { type: "integer", enum: [0, 1] },
+        },
+      },
       PaginationMeta: {
         type: "object",
         properties: {
@@ -485,6 +555,516 @@ export const openapiSpec = {
         },
       },
     },
+    "/v1/cart": {
+      post: {
+        operationId: "createCart",
+        summary: "Create a cart",
+        tags: ["Cart"],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { consumerId: { type: "string" } },
+                required: ["consumerId"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Cart created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Cart" } },
+                  required: ["data"],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/v1/cart/{id}": {
+      get: {
+        operationId: "getCart",
+        summary: "Get cart with items and subtotal",
+        tags: ["Cart"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Cart with items",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Cart" } },
+                  required: ["data"],
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Cart not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+        },
+      },
+    },
+    "/v1/cart/{id}/items": {
+      post: {
+        operationId: "addCartItem",
+        summary: "Add an item to a cart",
+        tags: ["Cart"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  productId: { type: "string" },
+                  quantity: { type: "integer", default: 1, minimum: 1 },
+                },
+                required: ["productId"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Item added",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/CartItem" } },
+                  required: ["data"],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/v1/cart/{id}/items/{itemId}": {
+      delete: {
+        operationId: "removeCartItem",
+        summary: "Remove an item from a cart",
+        tags: ["Cart"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          { name: "itemId", in: "path", required: true, schema: { type: "integer" } },
+        ],
+        responses: {
+          "200": {
+            description: "Item removed",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: {
+                      type: "object",
+                      properties: { deleted: { type: "boolean" } },
+                      required: ["deleted"],
+                    },
+                  },
+                  required: ["data"],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/v1/checkout": {
+      post: {
+        operationId: "createCheckout",
+        summary: "Initiate checkout",
+        description: "Creates a pending checkout. With approvalMode=inline, returns the approvalToken in the response. With approvalMode=async, the consumer is notified out of band.",
+        tags: ["Checkout"],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  cartId: { type: "string" },
+                  consumerId: { type: "string" },
+                  paymentMethodId: { type: "string" },
+                  approvalMode: { type: "string", enum: ["inline", "async"], default: "inline" },
+                },
+                required: ["cartId", "consumerId"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Checkout pending approval",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Checkout" } },
+                  required: ["data"],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/v1/checkout/{id}": {
+      get: {
+        operationId: "getCheckout",
+        summary: "Get checkout status",
+        tags: ["Checkout"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Checkout state (approvalToken redacted)",
+            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/Checkout" } } } } },
+          },
+        },
+      },
+    },
+    "/v1/checkout/{id}/approve": {
+      post: {
+        operationId: "approveCheckout",
+        summary: "Approve a pending checkout",
+        description: "Confirms the purchase. Creates one order per store in the cart and dispatches order.created webhooks.",
+        tags: ["Checkout"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { approvalToken: { type: "string" } },
+                required: ["approvalToken"],
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Checkout completed",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: {
+                      type: "object",
+                      properties: {
+                        checkoutId: { type: "string" },
+                        status: { type: "string" },
+                        orders: { type: "array", items: { $ref: "#/components/schemas/Order" } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "403": { description: "Invalid approval token" },
+          "410": { description: "Checkout has expired" },
+        },
+      },
+    },
+    "/v1/checkout/{id}/deny": {
+      post: {
+        operationId: "denyCheckout",
+        summary: "Deny a pending checkout",
+        tags: ["Checkout"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { approvalToken: { type: "string" } },
+                required: ["approvalToken"],
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Denied" },
+          "403": { description: "Invalid approval token" },
+        },
+      },
+    },
+    "/v1/orders": {
+      get: {
+        operationId: "listOrders",
+        summary: "List orders for a consumer",
+        tags: ["Orders"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "consumerId", in: "query", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Orders for consumer",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Order" } },
+                    meta: { type: "object", properties: { total: { type: "integer" } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/v1/orders/{id}": {
+      get: {
+        operationId: "getOrder",
+        summary: "Get an order by ID",
+        tags: ["Orders"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Order detail",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Order" } },
+                },
+              },
+            },
+          },
+          "404": { description: "Order not found" },
+        },
+      },
+    },
+    "/v1/adapter/shopify": {
+      post: {
+        operationId: "adaptShopifyStore",
+        summary: "Adapt a Shopify store to the Agora protocol",
+        description: "Generates an agora.json manifest and proxy endpoints for a Shopify store. The store URL is verified to be reachable and to expose /products.json before registration.",
+        tags: ["Adapter"],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { url: { type: "string", format: "uri" } },
+                required: ["url"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Store adapted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: {
+                      type: "object",
+                      properties: {
+                        store_id: { type: "string" },
+                        manifest: { type: "object" },
+                        endpoints: {
+                          type: "object",
+                          properties: {
+                            agora_json: { type: "string", format: "uri" },
+                            products: { type: "string", format: "uri" },
+                            product: { type: "string", format: "uri" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "502": { description: "Could not reach the store" },
+        },
+      },
+    },
+    "/v1/adapter/shopify/{storeId}/agora.json": {
+      get: {
+        operationId: "getAdaptedManifest",
+        summary: "Public manifest for an adapted Shopify store",
+        tags: ["Adapter"],
+        security: [],
+        parameters: [{ name: "storeId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": { description: "Manifest", content: { "application/json": { schema: { type: "object" } } } },
+          "404": { description: "Store not found" },
+        },
+      },
+    },
+    "/v1/adapter/shopify/{storeId}/products": {
+      get: {
+        operationId: "getAdaptedProducts",
+        summary: "Proxy products for an adapted Shopify store in Agora format",
+        tags: ["Adapter"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "storeId", in: "path", required: true, schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1, minimum: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 50, maximum: 50 } },
+        ],
+        responses: {
+          "200": {
+            description: "Products",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Product" } },
+                    meta: { $ref: "#/components/schemas/PaginationMeta" },
+                  },
+                },
+              },
+            },
+          },
+          "502": { description: "Upstream Shopify error" },
+        },
+      },
+    },
+    "/v1/adapter/shopify/{storeId}/products/{handle}": {
+      get: {
+        operationId: "getAdaptedProduct",
+        summary: "Single product from an adapted Shopify store",
+        tags: ["Adapter"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "storeId", in: "path", required: true, schema: { type: "string" } },
+          { name: "handle", in: "path", required: true, schema: { type: "string", pattern: "^[a-zA-Z0-9_-]+$" } },
+        ],
+        responses: {
+          "200": {
+            description: "Product",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Product" } },
+                },
+              },
+            },
+          },
+          "400": { description: "Invalid product handle" },
+          "404": { description: "Product not found" },
+        },
+      },
+    },
+    "/v1/stores/{storeId}/webhooks": {
+      get: {
+        operationId: "listWebhooks",
+        summary: "List webhooks for a store (caller-owned only)",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "storeId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Webhooks (secrets redacted)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Webhook" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createWebhook",
+        summary: "Create a webhook for a store you own",
+        description: "Returns the secret in plaintext exactly once. Save it — used as the HMAC key for signature verification on incoming events.",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "storeId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  url: { type: "string", format: "uri" },
+                  events: {
+                    type: "array",
+                    items: {
+                      type: "string",
+                      enum: ["product.searched", "product.viewed", "store.registered", "order.created", "checkout.approved", "checkout.denied"],
+                    },
+                  },
+                },
+                required: ["url", "events"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Webhook created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { data: { $ref: "#/components/schemas/Webhook" } },
+                },
+              },
+            },
+          },
+          "403": { description: "You do not own this store" },
+        },
+      },
+    },
+    "/v1/stores/{storeId}/webhooks/{webhookId}": {
+      delete: {
+        operationId: "deleteWebhook",
+        summary: "Delete a webhook you own",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "storeId", in: "path", required: true, schema: { type: "string" } },
+          { name: "webhookId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Deleted" },
+          "403": { description: "You do not own this webhook" },
+          "404": { description: "Webhook not found" },
+        },
+      },
+    },
   },
   tags: [
     { name: "Protocol", description: "Protocol-level endpoints (no auth required)" },
@@ -492,5 +1072,10 @@ export const openapiSpec = {
     { name: "Products", description: "Product search and detail endpoints" },
     { name: "Categories", description: "Product category endpoints" },
     { name: "Registry", description: "Network registry and statistics" },
+    { name: "Cart", description: "Cart management — multi-tenant, owner-scoped" },
+    { name: "Checkout", description: "Checkout flow with consumer approval and per-store order fanout" },
+    { name: "Orders", description: "Order history" },
+    { name: "Adapter", description: "Shopify-to-Agora protocol adapter" },
+    { name: "Webhooks", description: "Webhook subscriptions for store events" },
   ],
 } as const;

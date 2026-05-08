@@ -605,13 +605,13 @@ export default function Home() {
         {/* ═══ FOOTER ═══ */}
         <footer className="border-t border-border py-12 px-6">
           <div className="max-w-5xl mx-auto">
-            <div className="flex flex-wrap items-center gap-6 mb-8">
+            <div className="flex flex-wrap items-center gap-6 mb-4">
               {[
-                { label: "GitHub", href: "https://github.com/rbtbuilds/agora" },
-                { label: "API Playground", href: "https://agora-ecru-chi.vercel.app/playground" },
-                { label: "Developer Portal", href: "https://agora-portal.vercel.app" },
-                { label: "Demo", href: "https://demo-five-coral-13.vercel.app" },
-                { label: "Protocol Spec", href: "https://github.com/rbtbuilds/agora/blob/main/docs/protocol/spec.md" },
+                { label: "GitHub", href: "https://github.com/rbtbuilds/agora", external: true },
+                { label: "API Playground", href: "https://agora-ecru-chi.vercel.app/playground", external: true },
+                { label: "Developer Portal", href: "https://agora-portal.vercel.app", external: true },
+                { label: "Demo", href: "https://demo-five-coral-13.vercel.app", external: true },
+                { label: "Protocol Spec", href: "https://github.com/rbtbuilds/agora/blob/main/docs/protocol/spec.md", external: true },
               ].map((link) => (
                 <a
                   key={link.label}
@@ -623,6 +623,17 @@ export default function Home() {
                   {link.label}
                 </a>
               ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-6 mb-8">
+              <a href="/privacy" className="text-sm text-secondary hover:text-white transition-colors duration-200">
+                Privacy
+              </a>
+              <a href="/terms" className="text-sm text-secondary hover:text-white transition-colors duration-200">
+                Terms
+              </a>
+              <a href="mailto:agora@bentolabs.co.uk" className="text-sm text-secondary hover:text-white transition-colors duration-200">
+                Contact
+              </a>
             </div>
             <div className="text-xs font-mono text-secondary">
               Agora Protocol v1.0 - Protocol, SDK, and tools: MIT. Platform: BSL 1.1.
