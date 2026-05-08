@@ -2,6 +2,8 @@
 // Note: commerce/cart/checkout/order/adapter/webhook endpoints are documented in the
 // landing page HTML but not yet enumerated here — backlog item, see audit P3.
 
+const PUBLIC_API_URL = process.env.AGORA_PUBLIC_URL ?? "https://agora-ecru-chi.vercel.app";
+
 export const openapiSpec = {
   openapi: "3.1.0",
   info: {
@@ -12,7 +14,7 @@ export const openapiSpec = {
   },
   servers: [
     {
-      url: "https://agora-ecru-chi.vercel.app",
+      url: PUBLIC_API_URL,
       description: "Production",
     },
   ],

@@ -74,7 +74,7 @@ adapterRouter.post("/shopify", async (c) => {
     }, 502);
   }
 
-  const apiBase = "https://agora-ecru-chi.vercel.app";
+  const apiBase = process.env.AGORA_PUBLIC_URL ?? "https://agora-ecru-chi.vercel.app";
 
   // Generate the manifest
   const manifest = {
@@ -148,7 +148,7 @@ adapterPublicRouter.get("/shopify/:storeId/agora.json", async (c) => {
   }
 
   const s = store[0];
-  const apiBase = "https://agora-ecru-chi.vercel.app";
+  const apiBase = process.env.AGORA_PUBLIC_URL ?? "https://agora-ecru-chi.vercel.app";
 
   return c.json({
     $schema: "https://protocol.agora.dev/v1/schema.json",

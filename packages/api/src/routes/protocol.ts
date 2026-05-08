@@ -1,6 +1,9 @@
 import { Hono } from "hono";
 import { openapiSpec } from "../lib/openapi-spec.js";
 
+const PUBLIC_API_URL = process.env.AGORA_PUBLIC_URL ?? "https://agora-ecru-chi.vercel.app";
+const PORTAL_URL = process.env.AGORA_PORTAL_URL ?? "https://agora-portal.vercel.app";
+
 const protocolRouter = new Hono();
 
 protocolRouter.get("/.well-known/agora.json", (c) => {
@@ -9,7 +12,7 @@ protocolRouter.get("/.well-known/agora.json", (c) => {
     version: "1.0",
     store: {
       name: "Agora",
-      url: "https://agora-ecru-chi.vercel.app",
+      url: PUBLIC_API_URL,
       description: "The agent-friendly commerce layer for the internet",
       categories: [
         "apparel",
@@ -30,7 +33,7 @@ protocolRouter.get("/.well-known/agora.json", (c) => {
     },
     auth: {
       type: "bearer",
-      registration: "https://agora-portal.vercel.app",
+      registration: PORTAL_URL,
     },
     rate_limits: {
       requests_per_minute: 60,
