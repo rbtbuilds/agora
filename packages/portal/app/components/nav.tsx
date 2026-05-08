@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { PlanBadge } from "./plan-badge";
 
@@ -19,7 +20,17 @@ function Nav({ user }: NavProps) {
   return (
     <nav className="w-56 border-r border-border p-4 flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full" />
+        {user.avatarUrl ? (
+          <Image
+            src={user.avatarUrl}
+            alt={user.name || "Account avatar"}
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-surface" aria-hidden />
+        )}
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{user.name}</p>
           <PlanBadge tier={user.tier} />

@@ -13,28 +13,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (profile?.id) {
         try {
           const githubId = String(profile.id);
-          let user = await db
-            .select()
-            .from(users)
-            .where(eq(users.githubId, githubId))
-            .limit(1);
-
-          if (user.length === 0) {
-            const id = crypto.randomUUID();
-            await db.insert(users).values({
-              id,
+          // Concurrent first-logins from the same GitHub account would both
+          // miss the existence check and both try to insert. Use ON CONFLICT
+          // DO NOTHING so the loser silently no-ops, then re-select.
+          await db
+            .insert(users)
+            .values({
+              id: crypto.randomUUID(),
               githubId,
               githubUsername: (profile as any).login ?? "",
               name: profile.name ?? "",
               email: profile.email ?? "",
               avatarUrl: (profile as any).avatar_url ?? "",
-            });
-            user = await db
-              .select()
-              .from(users)
-              .where(eq(users.githubId, githubId))
-              .limit(1);
-          }
+            })
+            .onConflictDoNothing({ target: users.githubId });
+
+          const user = await db
+            .select()
+            .from(users)
+            .where(eq(users.githubId, githubId))
+            .limit(1);
 
           if (user[0]) {
             token.userId = user[0].id;

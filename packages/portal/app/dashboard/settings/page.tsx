@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
+import Image from "next/image";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -12,7 +13,17 @@ export default async function SettingsPage() {
       <div className="bg-surface border border-border rounded-xl p-6 mb-6">
         <h2 className="text-sm font-medium text-secondary uppercase tracking-wider mb-4">Account</h2>
         <div className="flex items-center gap-4 mb-4">
-          <img src={user.avatarUrl} alt={user.name} className="w-16 h-16 rounded-full" />
+          {user.avatarUrl ? (
+            <Image
+              src={user.avatarUrl}
+              alt={user.name || "Account avatar"}
+              width={64}
+              height={64}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-surface" aria-hidden />
+          )}
           <div>
             <p className="text-lg font-medium">{user.name || user.githubUsername}</p>
             <p className="text-secondary text-sm">@{user.githubUsername}</p>
