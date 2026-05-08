@@ -14,6 +14,9 @@ module.exports = {
         "accent-border": "#2d2640",
         secondary: "#a1a1aa",
         price: "#22c55e",
+        "status-ok": "#22c55e",
+        "code-string": "#86efac",
+        "code-key": "#7dd3fc",
       },
       fontFamily: {
         mono: ["'SF Mono'", "SFMono-Regular", "Consolas", "monospace"],

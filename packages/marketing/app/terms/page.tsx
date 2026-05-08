@@ -11,11 +11,17 @@ const LAST_UPDATED = "2026-05-08";
 
 export default function TermsPage() {
   return (
-    <main className="max-w-3xl mx-auto px-6 py-24 text-secondary">
+    <main className="max-w-3xl mx-auto px-6 py-28 text-secondary">
       <Link href="/" className="text-sm font-mono text-accent hover:underline">
         ← Back to Agora
       </Link>
-      <h1 className="text-4xl font-extrabold tracking-tight text-white mt-8 mb-2">
+
+      <div className="mt-8 mb-2">
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono">
+          Legal
+        </span>
+      </div>
+      <h1 className="text-4xl font-extrabold tracking-tight text-white mt-4 mb-2">
         Terms of Service
       </h1>
       <p className="font-mono text-xs uppercase tracking-widest mb-12">
@@ -104,7 +110,7 @@ export default function TermsPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-10 leading-relaxed">
+    <section className="mb-10 pb-10 border-b border-border last:border-0 last:pb-0 leading-relaxed">
       <h2 className="text-xl font-semibold text-white mb-4">{title}</h2>
       {children}
     </section>

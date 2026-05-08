@@ -17,6 +17,10 @@ module.exports = {
         secondary: "#a1a1aa",
         // Status
         price: "#22c55e",
+        "status-ok": "#22c55e",
+        // Code-block syntax accents — semantic so future themes stay coherent
+        "code-string": "#86efac",
+        "code-key": "#7dd3fc",
       },
       fontFamily: {
         mono: ["'SF Mono'", "SFMono-Regular", "Consolas", "monospace"],

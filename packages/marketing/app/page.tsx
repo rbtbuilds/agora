@@ -1,4 +1,6 @@
 import { HeroCounters } from "./components/hero-counters";
+import { LiveStat } from "./components/live-stat";
+import { RevealOnScroll } from "./components/reveal-on-scroll";
 
 const roles = [
   { id: "developer", icon: "</>", title: "Developer", subtitle: "Build agents that shop" },
@@ -30,13 +32,14 @@ export default function Home() {
         }}
       />
 
-      {/* Ambient Gradient — pauses for prefers-reduced-motion (see globals.css) */}
+      {/* Ambient conic gradient — clamped on mobile, dimmed for reduced motion */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] pointer-events-none opacity-30 marketing-spin"
+        className="fixed -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] sm:w-[800px] sm:h-[800px] pointer-events-none opacity-30 motion-reduce:opacity-15 marketing-spin"
         style={{
           background:
             "conic-gradient(from 0deg at 50% 50%, transparent, rgba(167,139,250,0.08), transparent, rgba(167,139,250,0.05), transparent)",
         }}
+        aria-hidden
       />
 
       <main className="relative z-10">
@@ -56,12 +59,11 @@ export default function Home() {
 
             <p className="text-xl sm:text-2xl text-secondary max-w-2xl leading-relaxed mb-6">
               The internet&apos;s missing commerce layer.
-              <br />
-              Built for AI agents. Open for everyone.
+              <span className="block mt-1">Built for AI agents. Open for everyone.</span>
             </p>
 
-            <p className="text-base text-secondary/80 max-w-xl leading-relaxed mb-16">
-              The internet was built for human browsers. AI agents need to discover, search, and purchase from stores programmatically - but there&apos;s no standard interface for that. Agora is the open protocol that makes every store agent-ready.
+            <p className="text-sm text-secondary/70 max-w-xl leading-relaxed mb-12">
+              The internet was built for human browsers. AI agents need to discover, search, and purchase from stores programmatically — but there&apos;s no standard interface for that. Agora is the open protocol that makes every store agent-ready.
             </p>
 
             {/* Role anchors — native browser scroll, no JS required */}
@@ -70,10 +72,18 @@ export default function Home() {
                 <a
                   key={role.id}
                   href={`#${role.id}`}
-                  className={`reveal-on-load reveal-delay-${i + 1} group block text-left p-5 rounded-xl border transition-all duration-300 border-border bg-surface hover:border-secondary`}
+                  className={`reveal-on-load reveal-delay-${i + 1} group block text-left p-5 rounded-xl border border-border bg-surface transition-all duration-300 hover:border-secondary hover:bg-accent-dim/30`}
                 >
-                  <div className="text-2xl font-mono text-accent mb-3 transition-transform duration-300 group-hover:translate-x-1">
-                    {role.icon}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="text-2xl font-mono text-accent transition-transform duration-300 group-hover:translate-x-1">
+                      {role.icon}
+                    </div>
+                    <span
+                      aria-hidden
+                      className="text-accent font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    >
+                      ↓
+                    </span>
                   </div>
                   <div className="text-sm font-semibold text-white mb-1">{role.title}</div>
                   <div className="text-xs text-secondary">{role.subtitle}</div>
@@ -85,15 +95,15 @@ export default function Home() {
 
         {/* ═══ STATS BANNER ═══ */}
         <section className="reveal-on-load border-y border-border py-6 px-6">
-          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-6">
-            <div className="flex flex-wrap items-center gap-8">
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <HeroCounters />
-              <div className="w-px h-6 bg-border" />
+              <div className="hidden sm:block w-px h-6 bg-border" aria-hidden />
               <div className="text-sm font-mono text-secondary">Protocol v1.0</div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 marketing-pulse-dot" />
-              <span className="text-xs font-mono uppercase tracking-wider text-green-400">
+              <span className="w-2 h-2 rounded-full bg-status-ok marketing-pulse-dot" aria-hidden />
+              <span className="text-xs font-mono uppercase tracking-wider text-status-ok">
                 Network Operational
               </span>
             </div>
@@ -102,7 +112,7 @@ export default function Home() {
 
         {/* ═══ HOW IT WORKS ═══ */}
         <section className="py-28 px-6">
-          <div className="max-w-5xl mx-auto">
+          <RevealOnScroll className="max-w-5xl mx-auto">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
               How It Works
             </span>
@@ -126,7 +136,7 @@ export default function Home() {
                 <div className="text-xs font-mono text-accent uppercase tracking-wider mb-3">02 Search</div>
                 <div className="text-sm font-semibold text-white mb-2">Agents query the network</div>
                 <p className="text-sm text-secondary leading-relaxed">
-                  The public registry indexes every protocol-compliant store. Agents search across all stores simultaneously - one query returns products from dozens of stores, ranked by relevance. Cross-store matching finds the same product at different prices. Trust scores surface the most reliable stores.
+                  The public registry indexes every protocol-compliant store. Agents search across all stores simultaneously — one query returns products from dozens of stores, ranked by relevance. Cross-store matching finds the same product at different prices. Trust scores surface the most reliable stores.
                 </p>
               </div>
               <div>
@@ -137,12 +147,12 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* ═══ DEVELOPER SECTION ═══ */}
         <section id="developer" className="py-28 px-6 scroll-mt-8">
-          <div className="reveal-on-load max-w-5xl mx-auto">
+          <RevealOnScroll className="max-w-5xl mx-auto">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
               For Developers
             </span>
@@ -151,7 +161,7 @@ export default function Home() {
               Build agents that shop
             </h2>
             <p className="text-lg text-secondary max-w-2xl mb-6">
-              Your agent shouldn&apos;t need to scrape HTML, reverse-engineer checkout flows, or handle a different API for every store. Agora gives you one unified interface to search 22,000+ products, compare prices across stores, and complete purchases - all through a single SDK.
+              Your agent shouldn&apos;t need to scrape HTML, reverse-engineer checkout flows, or handle a different API for every store. Agora gives you one unified interface to search 22,000+ products, compare prices across stores, and complete purchases — all through a single SDK.
             </p>
             <p className="text-base text-secondary/80 max-w-2xl mb-12">
               Three integration paths: a TypeScript SDK with built-in caching, an MCP server for Claude and ChatGPT, or direct REST API calls. Full OpenAPI spec at <a href="https://agora-ecru-chi.vercel.app/openapi.json" className="text-accent hover:underline">/openapi.json</a> and an interactive playground to test every endpoint before writing a line of code.
@@ -166,24 +176,24 @@ export default function Home() {
                     <span className="text-accent">import</span>
                     <span className="text-white"> {"{"} Agora {"}"} </span>
                     <span className="text-accent">from</span>
-                    <span className="text-green-400"> &apos;agora-sdk&apos;</span>
+                    <span className="text-code-string"> &apos;agora-sdk&apos;</span>
                     {"\n\n"}
                     <span className="text-accent">const</span>
                     <span className="text-white"> agora = </span>
                     <span className="text-accent">new</span>
                     <span className="text-white"> Agora({"{"} </span>
-                    <span className="text-blue-400">apiKey</span>
+                    <span className="text-code-key">apiKey</span>
                     <span className="text-white">: </span>
-                    <span className="text-green-400">&apos;ak_your_key&apos;</span>
+                    <span className="text-code-string">&apos;ak_your_key&apos;</span>
                     <span className="text-white"> {"}"})</span>
                     {"\n\n"}
                     <span className="text-accent">const</span>
                     <span className="text-white"> results = </span>
                     <span className="text-accent">await</span>
                     <span className="text-white"> agora.</span>
-                    <span className="text-blue-400">search</span>
+                    <span className="text-code-key">search</span>
                     <span className="text-white">(</span>
-                    <span className="text-green-400">&apos;hiking boots under $100&apos;</span>
+                    <span className="text-code-string">&apos;hiking boots under $100&apos;</span>
                     <span className="text-white">)</span>
                   </code>
                 </pre>
@@ -199,17 +209,17 @@ export default function Home() {
                     <span className="text-white">{"{"}</span>
                     {"\n"}
                     <span className="text-white">{"  "}&quot;</span>
-                    <span className="text-blue-400">mcpServers</span>
+                    <span className="text-code-key">mcpServers</span>
                     <span className="text-white">&quot;: {"{"}</span>
                     {"\n"}
                     <span className="text-white">{"    "}&quot;</span>
-                    <span className="text-blue-400">agora</span>
+                    <span className="text-code-key">agora</span>
                     <span className="text-white">&quot;: {"{"}</span>
                     {"\n"}
                     <span className="text-white">{"      "}&quot;</span>
-                    <span className="text-blue-400">url</span>
+                    <span className="text-code-key">url</span>
                     <span className="text-white">&quot;: </span>
-                    <span className="text-green-400">&quot;https://agora-ecru-chi.vercel.app/mcp&quot;</span>
+                    <span className="text-code-string">&quot;https://agora-ecru-chi.vercel.app/mcp&quot;</span>
                     {"\n"}
                     <span className="text-white">{"    }"}</span>
                     {"\n"}
@@ -235,12 +245,12 @@ export default function Home() {
                 Get API Keys
               </a>
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* ═══ STORE OWNER SECTION ═══ */}
         <section id="store-owner" className="py-28 px-6 border-t border-border scroll-mt-8">
-          <div className="reveal-on-load max-w-5xl mx-auto">
+          <RevealOnScroll className="max-w-5xl mx-auto">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
               For Store Owners
             </span>
@@ -249,13 +259,13 @@ export default function Home() {
               Make your store agent-ready
             </h2>
             <p className="text-lg text-secondary max-w-2xl mb-6">
-              AI agents are the next sales channel. When a consumer tells their AI assistant to &quot;find me hiking boots under $100,&quot; your store should be in those results. Agora makes that happen - instantly for Shopify stores, or through a simple protocol spec for custom platforms.
+              AI agents are the next sales channel. When a consumer tells their AI assistant to &quot;find me hiking boots under $100,&quot; your store should be in those results. Agora makes that happen — instantly for Shopify stores, or through a simple protocol spec for custom platforms.
             </p>
             <p className="text-base text-secondary/80 max-w-2xl mb-6">
               Stores that join the protocol get listed in a public registry that every agent on the network can query. You get analytics showing how agents interact with your products, a trust score that boosts your visibility, and webhook notifications for every search, view, and purchase.
             </p>
             <p className="text-base text-secondary/80 max-w-2xl mb-12">
-              For Shopify stores, it&apos;s a single API call - no code changes, no app installs, no configuration. We generate your protocol manifest, proxy your product feed in the standard format, and register you in the public registry. For custom platforms, implement two endpoints and validate with our CLI tool.
+              For Shopify stores, it&apos;s a single API call — no code changes, no app installs, no configuration. We generate your protocol manifest, proxy your product feed in the standard format, and register you in the public registry. For custom platforms, implement two endpoints and validate with our CLI tool.
             </p>
 
             <div className="mb-12">
@@ -267,7 +277,7 @@ export default function Home() {
                     <span className="text-white"> -X POST https://agora-ecru-chi.vercel.app/v1/adapter/shopify \</span>
                     {"\n"}
                     <span className="text-white">{"  "}-d </span>
-                    <span className="text-green-400">&apos;{"{\"url\": \"https://your-store.com\"}"}&apos;</span>
+                    <span className="text-code-string">&apos;{"{\"url\": \"https://your-store.com\"}"}&apos;</span>
                   </code>
                 </pre>
               </div>
@@ -295,12 +305,12 @@ export default function Home() {
                 </code>
               </div>
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* ═══ INVESTOR SECTION ═══ */}
         <section id="investor" className="py-28 px-6 border-t border-border scroll-mt-8">
-          <div className="reveal-on-load max-w-5xl mx-auto">
+          <RevealOnScroll className="max-w-5xl mx-auto">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
               For Investors
             </span>
@@ -311,13 +321,13 @@ export default function Home() {
               for agent commerce
             </h2>
             <p className="text-lg text-secondary max-w-2xl mb-6">
-              The internet is being rebuilt for AI agents. Today, agents can read, write, and reason - but they can&apos;t buy. There&apos;s no standard way for an AI to discover what a store sells, compare prices, or complete a purchase. Agora is that standard.
+              The internet is being rebuilt for AI agents. Today, agents can read, write, and reason — but they can&apos;t buy. There&apos;s no standard way for an AI to discover what a store sells, compare prices, or complete a purchase. Agora is that standard.
             </p>
             <p className="text-base text-secondary/80 max-w-2xl mb-6">
               Like Stripe built the payment rails for the internet, Agora is building the commerce rails for the agent era. Stores implement a simple protocol (<code className="text-accent/80">agora.json</code> at <code className="text-accent/80">/.well-known/</code>), agents discover them through a public registry, and transactions flow through a consumer-approved checkout layer.
             </p>
             <p className="text-base text-secondary/80 max-w-2xl mb-16">
-              The protocol is live. The registry is public. The transaction layer works end-to-end. Tens of thousands of products across 50+ stores are already indexed. The Shopify adapter means any of 4 million+ merchants can join with a single API call. The question isn&apos;t whether agent commerce will happen - it&apos;s who builds the infrastructure.
+              The protocol is live. The registry is public. The transaction layer works end-to-end. Tens of thousands of products across 50+ stores are already indexed. The Shopify adapter means any of 4 million+ merchants can join with a single API call. The question isn&apos;t whether agent commerce will happen — it&apos;s who builds the infrastructure.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-20">
@@ -340,11 +350,11 @@ export default function Home() {
                 {[
                   {
                     title: "Protocol standard",
-                    desc: "Like HTTP defined how browsers talk to servers, agora.json defines how agents talk to stores. Network effects compound with every adoption. Each new store makes the protocol more valuable for agents, each new agent makes it more valuable for stores. Open standard, MIT licensed - impossible to route around.",
+                    desc: "Like HTTP defined how browsers talk to servers, agora.json defines how agents talk to stores. Network effects compound with every adoption. Each new store makes the protocol more valuable for agents, each new agent makes it more valuable for stores. Open standard, MIT licensed — impossible to route around.",
                   },
                   {
                     title: "Discovery registry",
-                    desc: "The public registry is the DNS of agent commerce. Agents don't need to know store URLs - they query the registry. Stores are ranked by trust score, analytics, and protocol compliance. First-mover advantage in building the canonical directory.",
+                    desc: "The public registry is the DNS of agent commerce. Agents don't need to know store URLs — they query the registry. Stores are ranked by trust score, analytics, and protocol compliance. First-mover advantage in building the canonical directory.",
                   },
                   {
                     title: "Commerce rail",
@@ -363,21 +373,25 @@ export default function Home() {
               <div className="text-xs font-mono text-secondary uppercase tracking-wider mb-6">Architecture</div>
               <div className="flex flex-wrap items-center gap-2">
                 {archSteps.map((step, i) => (
-                  <div key={step} className="flex items-center gap-2">
-                    <span className="px-4 py-2 rounded-lg bg-surface border border-border text-sm font-mono text-white">
+                  <div key={step} className="inline-flex items-center gap-2 whitespace-nowrap">
+                    <span className="px-4 py-2 rounded-lg bg-surface border border-border text-sm font-mono text-white transition-colors duration-200 hover:border-accent-border hover:text-accent">
                       {step}
                     </span>
-                    {i < archSteps.length - 1 && <span className="text-secondary text-lg">&rsaquo;</span>}
+                    {i < archSteps.length - 1 && (
+                      <span className="text-secondary text-lg" aria-hidden>
+                        &rsaquo;
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* ═══ WHAT'S LIVE ═══ */}
         <section className="py-28 px-6 border-t border-border">
-          <div className="max-w-5xl mx-auto">
+          <RevealOnScroll className="max-w-5xl mx-auto">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs tracking-widest uppercase text-secondary font-mono mb-6">
               Live Now
             </span>
@@ -390,17 +404,10 @@ export default function Home() {
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-16">
-              {[
-                { value: "20k+", label: "Products indexed" },
-                { value: "50+", label: "Stores on network" },
-                { value: "30+", label: "API endpoints" },
-                { value: "50", label: "Automated tests" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <div className="text-2xl font-extrabold font-mono text-white mb-1">{s.value}</div>
-                  <div className="text-xs text-secondary">{s.label}</div>
-                </div>
-              ))}
+              <LiveStat target={20000} suffix="+" label="Products indexed" format="thousands" />
+              <LiveStat target={50} suffix="+" label="Stores on network" />
+              <LiveStat target={30} suffix="+" label="API endpoints" />
+              <LiveStat target={112} suffix="" label="Automated tests" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -423,7 +430,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* ═══ FOOTER ═══ */}
@@ -460,7 +467,7 @@ export default function Home() {
               </a>
             </div>
             <div className="text-xs font-mono text-secondary">
-              Agora Protocol v1.0 - Protocol, SDK, and tools: MIT. Platform: BSL 1.1.
+              Agora Protocol v1.0 — Protocol, SDK, and tools: MIT. Platform: BSL 1.1.
             </div>
           </div>
         </footer>
