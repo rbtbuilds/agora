@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { db, users, subscriptions } from "@/lib/db";
 import { eq } from "drizzle-orm";
+
+// Stripe API 2025-03-31.basil moved current_period_{start,end} from the
+// subscription level to subscription_items. For our single-price plans the
+// first item's window IS the subscription window. Read it there.
+function periodEndOf(sub: Stripe.Subscription): Date {
+  const item = sub.items.data[0];
+  const ts = (item as { current_period_end?: number }).current_period_end;
+  if (typeof ts === "number") return new Date(ts * 1000);
+  // Defensive fallback: if Stripe ever omits the field, push the date out a
+  // month so we don't accidentally mark the subscription expired.
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -29,7 +42,7 @@ export async function POST(req: Request) {
         stripePriceId: sub.items.data[0].price.id,
         tier: "pro",
         status: "active",
-        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+        currentPeriodEnd: periodEndOf(sub),
       });
       await db.update(users).set({ tier: "pro" }).where(eq(users.id, userId));
       break;
@@ -37,7 +50,7 @@ export async function POST(req: Request) {
     case "customer.subscription.updated": {
       const sub = event.data.object;
       await db.update(subscriptions)
-        .set({ status: sub.status, currentPeriodEnd: new Date(sub.current_period_end * 1000) })
+        .set({ status: sub.status, currentPeriodEnd: periodEndOf(sub) })
         .where(eq(subscriptions.stripeSubscriptionId, sub.id));
       break;
     }

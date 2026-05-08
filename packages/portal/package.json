@@ -14,7 +14,7 @@
     "postgres": "^3.4",
     "react": "^19",
     "react-dom": "^19",
-    "stripe": "^17"
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@types/node": "^22",
