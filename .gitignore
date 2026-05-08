@@ -1,7 +1,9 @@
 node_modules/
 dist/
-.env
-.env.local
+# Ignore every .env variant (.env, .env.local, .env.production, .env.staging, etc.)
+# but keep the placeholder template tracked.
+.env*
+!.env.example
 *.tsbuildinfo
 .turbo/
 __pycache__/
@@ -9,8 +11,8 @@ __pycache__/
 .venv/
 .scrapy/
 .vercel
-.env*.local
 .superpowers/
+.sentinel/
 .DS_Store
 .next/
 packages/marketing/app/tailwind.css
