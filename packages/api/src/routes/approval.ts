@@ -1,10 +1,38 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import crypto from "node:crypto";
 import { db, checkouts, cartItems, products, stores, paymentMethods, carts, orders } from "@agora/db";
 import { eq } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
 
 const approvalRouter = new Hono();
+
+// CSRF guard for the public approval POST endpoints. The token in the URL is
+// the auth, but a malicious page that learns a token could still auto-submit a
+// form. Block cross-origin POSTs by requiring Origin or Referer to match the
+// request host. Same-origin form submits from the GET page below always do.
+function isSameOriginPost(c: Context): boolean {
+  const host = c.req.header("host");
+  if (!host) return false;
+  const origin = c.req.header("origin");
+  const referer = c.req.header("referer");
+  const matches = (value: string | undefined) => {
+    if (!value) return null;
+    try {
+      return new URL(value).host === host;
+    } catch {
+      return false;
+    }
+  };
+  const originMatch = matches(origin);
+  const refererMatch = matches(referer);
+  // If neither header is present, reject — modern browsers always send at
+  // least one for cross-origin POSTs.
+  if (originMatch === null && refererMatch === null) return false;
+  // If either header is present, it must match. If both are present, both must.
+  if (originMatch === false || refererMatch === false) return false;
+  return true;
+}
 
 function approvalErrorPage(title: string, message: string): string {
   return `<!DOCTYPE html>
@@ -219,6 +247,9 @@ approvalRouter.get("/:token", async (c) => {
 });
 
 approvalRouter.post("/:token/confirm", async (c) => {
+  if (!isSameOriginPost(c)) {
+    return c.html(approvalErrorPage("Request blocked", "This approval request did not come from a trusted origin."), 403);
+  }
   const token = c.req.param("token");
 
   const result = await db.select().from(checkouts)
@@ -358,6 +389,9 @@ approvalRouter.post("/:token/confirm", async (c) => {
 });
 
 approvalRouter.post("/:token/deny", async (c) => {
+  if (!isSameOriginPost(c)) {
+    return c.html(approvalErrorPage("Request blocked", "This approval request did not come from a trusted origin."), 403);
+  }
   const token = c.req.param("token");
 
   const result = await db.select().from(checkouts)

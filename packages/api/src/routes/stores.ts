@@ -40,16 +40,18 @@ storesRouter.post("/register", async (c) => {
   const storeUrl = body.url.replace(/\/$/, "");
   const storeId = generateStoreId(storeUrl);
 
-  // Check if already registered
+  // Check if already registered. If the existing record is unowned, fall
+  // through and re-evaluate verification — a real domain operator can claim
+  // a previously-scraped/unowned store by serving the verification field.
   const existing = await db
     .select()
     .from(stores)
     .where(eq(stores.url, storeUrl))
     .limit(1);
 
-  if (existing.length > 0) {
+  if (existing.length > 0 && existing[0].ownerId !== null) {
     return c.json({
-      data: existing[0],
+      data: { ...existing[0], ownerId: undefined },
       meta: { message: "Store already registered" },
     });
   }
@@ -60,6 +62,11 @@ storesRouter.post("/register", async (c) => {
   let validationScore: number | null = null;
   let agoraJsonUrl: string | null = null;
   let source: "native" | "scraped" = "scraped";
+  // Domain ownership: a caller may only claim ownership of a store URL by
+  // serving an agora.json with `verification.owner_id` matching their userId.
+  // Otherwise the store is registered with no owner and remains claimable
+  // (via the same manifest field) by the actual domain operator later.
+  let verifiedOwnerId: string | null = null;
 
   try {
     const manifestUrl = `${storeUrl}/.well-known/agora.json`;
@@ -78,6 +85,9 @@ storesRouter.post("/register", async (c) => {
         if (manifest.capabilities?.search) score += 10;
         if (manifest.capabilities?.cart) score += 10;
         validationScore = score;
+        if (manifest.verification?.owner_id === ownerId) {
+          verifiedOwnerId = ownerId;
+        }
       }
     }
   } catch {
@@ -94,12 +104,47 @@ storesRouter.post("/register", async (c) => {
     productCount: 0,
     validationScore,
     status: "active",
-    ownerId,
+    ownerId: verifiedOwnerId,
   };
+
+  if (existing.length > 0) {
+    // Unowned existing record — update in place. If this caller verified
+    // ownership, claim it; otherwise refresh metadata only.
+    await db
+      .update(stores)
+      .set({
+        name: storeName,
+        agoraJsonUrl,
+        source,
+        capabilities,
+        validationScore,
+        ...(verifiedOwnerId !== null && { ownerId: verifiedOwnerId }),
+      })
+      .where(eq(stores.id, existing[0].id));
+    return c.json({
+      data: { ...newStore, id: existing[0].id, ownerId: verifiedOwnerId },
+      meta: {
+        source,
+        verified: verifiedOwnerId !== null,
+        ...(verifiedOwnerId === null && {
+          verificationHint: `To claim ownership, add { "verification": { "owner_id": "${ownerId}" } } to your /.well-known/agora.json and re-register.`,
+        }),
+      },
+    });
+  }
 
   await db.insert(stores).values(newStore);
 
-  return c.json({ data: newStore, meta: { source } }, 201);
+  return c.json({
+    data: newStore,
+    meta: {
+      source,
+      verified: verifiedOwnerId !== null,
+      ...(verifiedOwnerId === null && {
+        verificationHint: `To claim ownership, add { "verification": { "owner_id": "${ownerId}" } } to your /.well-known/agora.json and re-register.`,
+      }),
+    },
+  }, 201);
 });
 
 // GET /v1/stores
