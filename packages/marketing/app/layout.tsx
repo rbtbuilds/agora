@@ -1,10 +1,30 @@
 import type { Metadata } from "next";
 import "./tailwind.css";
 
+const SITE_URL =
+  process.env.AGORA_MARKETING_URL ?? "https://marketing-six-kohl.vercel.app";
+
+const TITLE = "Agora - The Open Protocol for Agent Commerce";
+const DESCRIPTION =
+  "The internet's missing commerce layer. Built for AI agents. Open for everyone. Search, cart, and checkout across any store with a single protocol.";
+
 export const metadata: Metadata = {
-  title: "Agora - The Open Protocol for Agent Commerce",
-  description:
-    "The internet's missing commerce layer. Built for AI agents. Open for everyone. Search, cart, and checkout across any store with a single protocol.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: TITLE,
+    description: DESCRIPTION,
+    siteName: "Agora",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

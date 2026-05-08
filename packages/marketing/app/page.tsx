@@ -96,8 +96,8 @@ const archSteps = ["Protocol", "Registry", "Search", "Cart", "Checkout", "Order"
 export default function Home() {
   const [activeRole, setActiveRole] = useState<string | null>(null);
 
-  const products = useCountUp(22562);
-  const stores = useCountUp(52);
+  const products = useCountUp(20000);
+  const stores = useCountUp(50);
   const endpoints = useCountUp(30);
 
   const heroReveal = useReveal();
@@ -213,14 +213,14 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-8">
               <div>
                 <span ref={products.ref} className="text-2xl font-bold font-mono text-white">
-                  {products.value.toLocaleString()}
+                  {products.value.toLocaleString()}+
                 </span>
                 <span className="ml-2 text-sm text-secondary">products</span>
               </div>
               <div className="w-px h-6 bg-border" />
               <div>
                 <span ref={stores.ref} className="text-2xl font-bold font-mono text-white">
-                  {stores.value}
+                  {stores.value}+
                 </span>
                 <span className="ml-2 text-sm text-secondary">stores</span>
               </div>
@@ -272,7 +272,7 @@ export default function Home() {
                 <div className="text-xs font-mono text-accent uppercase tracking-wider mb-3">02 Search</div>
                 <div className="text-sm font-semibold text-white mb-2">Agents query the network</div>
                 <p className="text-sm text-secondary leading-relaxed">
-                  The public registry indexes every protocol-compliant store. Agents search across all stores simultaneously - one query returns products from 52 stores, ranked by relevance. Cross-store matching finds the same product at different prices. Trust scores surface the most reliable stores.
+                  The public registry indexes every protocol-compliant store. Agents search across all stores simultaneously - one query returns products from dozens of stores, ranked by relevance. Cross-store matching finds the same product at different prices. Trust scores surface the most reliable stores.
                 </p>
               </div>
               <div>
@@ -484,7 +484,7 @@ export default function Home() {
               Like Stripe built the payment rails for the internet, Agora is building the commerce rails for the agent era. Stores implement a simple protocol (<code className="text-accent/80">agora.json</code> at <code className="text-accent/80">/.well-known/</code>), agents discover them through a public registry, and transactions flow through a consumer-approved checkout layer.
             </p>
             <p className="text-base text-secondary/70 max-w-2xl mb-16">
-              The protocol is live. The registry is public. The transaction layer works end-to-end. 52 stores and 22,562 products are already indexed. The Shopify adapter means any of 4 million+ merchants can join with a single API call. The question isn&apos;t whether agent commerce will happen - it&apos;s who builds the infrastructure.
+              The protocol is live. The registry is public. The transaction layer works end-to-end. Tens of thousands of products across 50+ stores are already indexed. The Shopify adapter means any of 4 million+ merchants can join with a single API call. The question isn&apos;t whether agent commerce will happen - it&apos;s who builds the infrastructure.
             </p>
 
             {/* Key Data Points */}
@@ -567,8 +567,8 @@ export default function Home() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-16">
               {[
-                { value: "22,562", label: "Products indexed" },
-                { value: "52", label: "Stores on network" },
+                { value: "20k+", label: "Products indexed" },
+                { value: "50+", label: "Stores on network" },
                 { value: "30+", label: "API endpoints" },
                 { value: "50", label: "Automated tests" },
               ].map((s) => (
