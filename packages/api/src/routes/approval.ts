@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { db, checkouts, cartItems, products, stores, paymentMethods, carts, orders } from "@agora/db";
 import { eq } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
+import { DESIGN_TOKENS_CSS } from "../lib/design-tokens.js";
 
 const approvalRouter = new Hono();
 
@@ -34,44 +35,64 @@ function isSameOriginPost(c: Context): boolean {
   return true;
 }
 
-function approvalErrorPage(title: string, message: string): string {
+const APPROVAL_BASE_STYLES = `${DESIGN_TOKENS_CSS}
+  body { display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 440px;
+    width: 100%;
+    animation: agora-fade-up 0.4s ease both;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--secondary);
+    margin-bottom: 1.25rem;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-family: var(--font-sans);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  p.subtitle, p.message {
+    font-size: 0.9rem;
+    color: var(--secondary);
+    line-height: 1.55;
+  }
+`;
+
+function approvalErrorPage(title: string, message: string, icon = "&#128274;"): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agora Checkout</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 2.5rem;
-      max-width: 420px;
-      width: 100%;
-      margin: 1rem;
-      text-align: center;
-    }
-    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    h1 { font-size: 1.25rem; font-weight: 600; color: #e5e5e5; margin-bottom: 0.5rem; }
-    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
+  <style>${APPROVAL_BASE_STYLES}
+    .card { text-align: center; }
+    .icon { font-size: 2.25rem; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">&#128274;</div>
+    <div class="icon">${icon}</div>
     <h1>${title}</h1>
-    <p>${message}</p>
+    <p class="message">${message}</p>
   </div>
 </body>
 </html>`;
@@ -93,7 +114,7 @@ approvalRouter.get("/:token", async (c) => {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
       `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`
+      `This purchase has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
@@ -125,125 +146,109 @@ approvalRouter.get("/:token", async (c) => {
   const itemsHtml = items.map((item) => {
     const storeLabel = item.storeName ? ` &middot; ${item.storeName}` : "";
     const lineTotal = (parseFloat(item.price) * item.quantity).toFixed(2);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;background:#0a0a0a;border-radius:8px;margin-bottom:0.5rem;">
+    return `<div class="item">
       <div>
-        <div style="font-size:0.95rem;color:#e5e5e5;font-weight:500;">${item.name} <span style="color:#71717a;font-weight:400;">&times;${item.quantity}</span></div>
-        <div style="font-size:0.8rem;color:#71717a;margin-top:0.2rem;">$${item.price}${storeLabel}</div>
+        <div class="item-name">${item.name} <span class="item-qty">&times;${item.quantity}</span></div>
+        <div class="item-meta">$${item.price}${storeLabel}</div>
       </div>
-      <div style="font-size:0.95rem;color:#e5e5e5;font-weight:600;">$${lineTotal}</div>
+      <div class="item-total">$${lineTotal}</div>
     </div>`;
   }).join("");
 
-  const html = `<!DOCTYPE html>
+  return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agora Checkout</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 2rem;
-      max-width: 420px;
-      width: 100%;
-      margin: 1rem;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      margin-bottom: 1.5rem;
-    }
-    .header-icon { font-size: 1.25rem; }
-    .header h1 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #a78bfa;
-      letter-spacing: -0.01em;
-    }
-    .subtitle { font-size: 0.875rem; color: #71717a; margin-bottom: 1rem; }
+  <style>${APPROVAL_BASE_STYLES}
     .items { margin-bottom: 1.25rem; }
-    .divider { border: none; border-top: 1px solid #27272a; margin: 1.25rem 0; }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+    }
+    .item:last-child { margin-bottom: 0; }
+    .item-name { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+    .item-qty { color: var(--secondary-dim); font-weight: 400; font-family: var(--font-mono); font-size: 0.85rem; }
+    .item-meta { font-size: 0.8rem; color: var(--secondary-dim); margin-top: 0.2rem; }
+    .item-total { font-size: 0.95rem; color: var(--text); font-weight: 600; font-family: var(--font-mono); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
     .summary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 0.5rem;
     }
-    .summary-label { font-size: 0.875rem; color: #a1a1aa; }
-    .summary-value { font-size: 0.875rem; color: #a1a1aa; }
-    .total-amount { font-size: 1.1rem; font-weight: 700; color: #e5e5e5; }
+    .summary-row:last-child { margin-bottom: 0; }
+    .summary-label { font-size: 0.875rem; color: var(--secondary); }
+    .summary-value { font-size: 0.875rem; color: var(--secondary); font-family: var(--font-mono); }
+    .total-amount { font-size: 1.15rem; font-weight: 700; color: var(--text); font-family: var(--font-mono); }
     .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
-    .btn-approve {
+    .btn {
       flex: 1;
-      background: #a78bfa;
-      color: #0a0a0a;
-      border: none;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.15s ease;
+      font-family: var(--font-sans);
     }
-    .btn-approve:hover { background: #c4b5fd; }
+    .btn-approve {
+      background: var(--accent);
+      color: var(--bg);
+      border: 1px solid var(--accent);
+    }
+    .btn-approve:hover { filter: brightness(1.1); }
     .btn-deny {
-      flex: 1;
       background: transparent;
-      color: #e5e5e5;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
+      color: var(--text);
+      border: 1px solid var(--border);
       font-weight: 500;
-      cursor: pointer;
     }
-    .btn-deny:hover { border-color: #ef4444; color: #ef4444; }
-    .expiry { text-align: center; font-size: 0.78rem; color: #52525b; margin-top: 1rem; }
+    .btn-deny:hover { border-color: var(--danger); color: var(--danger); }
+    .expiry {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--secondary-dim);
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="header">
-      <span class="header-icon">&#128274;</span>
-      <h1>Agora Checkout</h1>
-    </div>
-    <p class="subtitle">An agent wants to purchase:</p>
+    <div class="pill"><span class="dot"></span> Agora Checkout</div>
+    <h1>Approve this purchase?</h1>
+    <p class="subtitle" style="margin-bottom:1rem;">An agent wants to make the following purchase:</p>
     <div class="items">${itemsHtml}</div>
     <hr class="divider">
     <div class="summary-row">
       <span class="summary-label">Total</span>
       <span class="total-amount">$${checkout.totalAmount}</span>
     </div>
-    <div class="summary-row" style="margin-bottom:0;">
+    <div class="summary-row">
       <span class="summary-label">Card</span>
       <span class="summary-value">${cardInfo}</span>
     </div>
     <div class="actions">
       <form action="/approve/${token}/confirm" method="POST" style="flex:1;">
-        <button type="submit" class="btn-approve" style="width:100%;">Approve</button>
+        <button type="submit" class="btn btn-approve" style="width:100%;">Approve</button>
       </form>
       <form action="/approve/${token}/deny" method="POST" style="flex:1;">
-        <button type="submit" class="btn-deny" style="width:100%;">Deny</button>
+        <button type="submit" class="btn btn-deny" style="width:100%;">Deny</button>
       </form>
     </div>
-    <p class="expiry">This link expires in ${expiryText}</p>
+    <p class="expiry">Expires in ${expiryText}</p>
   </div>
 </body>
-</html>`;
-
-  return c.html(html);
+</html>`);
 });
 
 approvalRouter.post("/:token/confirm", async (c) => {
@@ -265,7 +270,7 @@ approvalRouter.post("/:token/confirm", async (c) => {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
       `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`
+      `This purchase has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
@@ -342,50 +347,34 @@ approvalRouter.post("/:token/confirm", async (c) => {
     .set({ status: "checked_out" })
     .where(eq(carts.id, checkout.cartId));
 
-  const html = `<!DOCTYPE html>
+  return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Purchase Approved</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 2.5rem;
-      max-width: 420px;
-      width: 100%;
-      margin: 1rem;
-      text-align: center;
-    }
+  <style>${APPROVAL_BASE_STYLES}
+    .card { text-align: center; }
     .icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    h1 { font-size: 1.25rem; font-weight: 600; color: #a78bfa; margin-bottom: 0.5rem; }
-    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
-    .amount { font-size: 1.5rem; font-weight: 700; color: #e5e5e5; margin: 1rem 0; }
+    .amount {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 1rem 0;
+      font-family: var(--font-mono);
+    }
+    h1 { color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">&#9989;</div>
+    <div class="pill"><span class="dot"></span> Approved</div>
     <h1>Purchase approved</h1>
     <div class="amount">$${checkout.totalAmount}</div>
-    <p>Your purchase has been approved and is being processed. You will receive a confirmation shortly.</p>
+    <p class="message">Your purchase has been approved and is being processed. You will receive a confirmation shortly.</p>
   </div>
 </body>
-</html>`;
-
-  return c.html(html);
+</html>`);
 });
 
 approvalRouter.post("/:token/deny", async (c) => {
@@ -407,7 +396,7 @@ approvalRouter.post("/:token/deny", async (c) => {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
       `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`
+      `This purchase has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
@@ -415,48 +404,11 @@ approvalRouter.post("/:token/deny", async (c) => {
     .set({ status: "denied" })
     .where(eq(checkouts.id, checkout.id));
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Purchase Denied</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 2.5rem;
-      max-width: 420px;
-      width: 100%;
-      margin: 1rem;
-      text-align: center;
-    }
-    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    h1 { font-size: 1.25rem; font-weight: 600; color: #e5e5e5; margin-bottom: 0.5rem; }
-    p { color: #71717a; font-size: 0.9rem; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">&#128683;</div>
-    <h1>Purchase denied</h1>
-    <p>You have denied this purchase. The agent has been notified and no charge has been made.</p>
-  </div>
-</body>
-</html>`;
-
-  return c.html(html);
+  return c.html(approvalErrorPage(
+    "Purchase denied",
+    "You have denied this purchase. The agent has been notified and no charge has been made.",
+    "&#128683;",
+  ));
 });
 
 export { approvalRouter };

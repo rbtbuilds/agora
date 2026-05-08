@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { openapiSpec } from "../lib/openapi-spec.js";
+import { DESIGN_TOKENS_CSS } from "../lib/design-tokens.js";
 
 const PUBLIC_API_URL = process.env.AGORA_PUBLIC_URL ?? "https://agora-ecru-chi.vercel.app";
 const PORTAL_URL = process.env.AGORA_PORTAL_URL ?? "https://agora-portal.vercel.app";
@@ -76,200 +77,150 @@ protocolRouter.get("/playground", (c) => {
 
 protocolRouter.get("/health", (c) => c.json({ status: "ok" }));
 
+const ENDPOINTS: Array<{ method: "GET" | "POST"; path: string; desc: string }> = [
+  { method: "GET", path: "/v1/products/search", desc: "Search products" },
+  { method: "GET", path: "/v1/products/:id", desc: "Product details" },
+  { method: "GET", path: "/v1/products/:id/similar", desc: "Similar products" },
+  { method: "GET", path: "/v1/products/:id/compare", desc: "Cross-store matches" },
+  { method: "GET", path: "/v1/categories", desc: "Browse categories" },
+  { method: "POST", path: "/v1/stores/register", desc: "Register a store" },
+  { method: "GET", path: "/v1/stores", desc: "List stores" },
+  { method: "GET", path: "/v1/stores/:id", desc: "Store details" },
+  { method: "POST", path: "/v1/adapter/shopify", desc: "Adapt a Shopify store" },
+  { method: "GET", path: "/.well-known/agora.json", desc: "Protocol manifest" },
+  { method: "POST", path: "/v1/cart", desc: "Create cart" },
+  { method: "POST", path: "/v1/checkout", desc: "Initiate checkout" },
+  { method: "GET", path: "/v1/orders", desc: "List orders" },
+  { method: "GET", path: "/playground", desc: "Interactive API playground" },
+];
+
 protocolRouter.get("/", (c) => {
+  const endpointsHtml = ENDPOINTS.map(
+    (e) => `<div class="endpoint">
+        <span class="method method-${e.method.toLowerCase()}">${e.method}</span>
+        <span class="path">${e.path}</span>
+        <span class="desc">${e.desc}</span>
+      </div>`,
+  ).join("\n      ");
+
   return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agora API</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .container { max-width: 640px; padding: 2rem; text-align: center; }
-    h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #6366f1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
-    }
-    .tagline {
-      font-size: 1.15rem;
-      color: #a1a1aa;
-      margin-bottom: 2.5rem;
-      line-height: 1.6;
-    }
-    .status {
+  <style>${DESIGN_TOKENS_CSS}
+    body { display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    .container { max-width: 720px; width: 100%; text-align: center; animation: agora-fade-up 0.6s ease both; }
+    .pill {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: #18181b;
-      border: 1px solid #27272a;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid var(--border);
       border-radius: 9999px;
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      color: #a1a1aa;
-      margin-bottom: 2.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--secondary);
+      margin-bottom: 1.5rem;
     }
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: #22c55e;
+    .pill .dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      animation: pulse 2s infinite;
+      background: var(--status-ok);
+      animation: agora-pulse-dot 2s ease-in-out infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    h1 {
+      font-size: 3.25rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      line-height: 1;
+    }
+    .tagline {
+      font-size: 1.1rem;
+      color: var(--secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
     }
     .endpoints {
       text-align: left;
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
     }
     .endpoints h2 {
-      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #71717a;
+      letter-spacing: 0.18em;
+      color: var(--secondary);
       margin-bottom: 1rem;
     }
     .endpoint {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid #27272a;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--border);
       font-size: 0.9rem;
     }
     .endpoint:last-child { border-bottom: none; }
     .method {
-      font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
-      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
       font-weight: 600;
-      color: #22c55e;
-      background: #052e16;
-      padding: 0.15rem 0.5rem;
+      padding: 0.2rem 0.55rem;
       border-radius: 4px;
-      min-width: 36px;
+      min-width: 40px;
       text-align: center;
     }
-    .path {
-      font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
-      color: #e5e5e5;
-    }
-    .desc { color: #71717a; margin-left: auto; font-size: 0.8rem; }
+    .method-get { color: var(--status-ok); background: var(--status-ok-bg); }
+    .method-post { color: var(--accent); background: var(--accent-dim); }
+    .path { font-family: var(--font-mono); color: var(--text); }
+    .desc { color: var(--secondary-dim); margin-left: auto; font-size: 0.8rem; }
     .links {
       display: flex;
       gap: 1.5rem;
       justify-content: center;
+      flex-wrap: wrap;
     }
     a {
-      color: #a78bfa;
+      color: var(--accent);
       text-decoration: none;
       font-size: 0.9rem;
       transition: color 0.2s;
     }
-    a:hover { color: #c4b5fd; }
+    a:hover { color: var(--accent-soft); }
+    @media (max-width: 540px) {
+      h1 { font-size: 2.5rem; }
+      .desc { display: none; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="pill"><span class="dot"></span> API Operational</div>
     <h1>Agora</h1>
     <p class="tagline">The agent-friendly commerce layer for the internet.</p>
-    <div class="status"><span class="dot"></span> API operational</div>
     <div class="endpoints">
       <h2>Endpoints</h2>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/products/search</span>
-        <span class="desc">Search products</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/products/:id</span>
-        <span class="desc">Product details</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/products/:id/similar</span>
-        <span class="desc">Similar products</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/products/:id/compare</span>
-        <span class="desc">Cross-store matches</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/categories</span>
-        <span class="desc">Browse categories</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">POST</span>
-        <span class="path">/v1/stores/register</span>
-        <span class="desc">Register a store</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/stores</span>
-        <span class="desc">List stores</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/stores/:id</span>
-        <span class="desc">Store details</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">POST</span>
-        <span class="path">/v1/adapter/shopify</span>
-        <span class="desc">Adapt a Shopify store</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/.well-known/agora.json</span>
-        <span class="desc">Protocol manifest</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">POST</span>
-        <span class="path">/v1/cart</span>
-        <span class="desc">Create cart</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">POST</span>
-        <span class="path">/v1/checkout</span>
-        <span class="desc">Initiate checkout</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/v1/orders</span>
-        <span class="desc">List orders</span>
-      </div>
-      <div class="endpoint">
-        <span class="method">GET</span>
-        <span class="path">/playground</span>
-        <span class="desc">Interactive API playground</span>
-      </div>
+      ${endpointsHtml}
     </div>
     <div class="links">
       <a href="https://github.com/rbtbuilds/agora">GitHub</a>
       <a href="https://github.com/rbtbuilds/agora#sdk-usage">SDK Docs</a>
-      <a href="/health">Health Check</a>
+      <a href="/openapi.json">OpenAPI Spec</a>
       <a href="/playground">API Playground</a>
+      <a href="/health">Health</a>
     </div>
   </div>
 </body>
