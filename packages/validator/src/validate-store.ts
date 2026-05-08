@@ -1,16 +1,23 @@
 import { validateManifest } from "./validate-manifest.js";
 import { validateProduct } from "./validate-product.js";
+import { safeFetch, validateExternalUrl } from "./safe-fetch.js";
 import type { StoreValidationResult, ValidationCheck } from "./types.js";
 
 export async function validateStore(storeUrl: string): Promise<StoreValidationResult> {
   const checks: ValidationCheck[] = [];
   const baseUrl = storeUrl.replace(/\/$/, "");
 
+  const urlCheck = validateExternalUrl(baseUrl);
+  if (!urlCheck.valid) {
+    checks.push({ name: "discovery", status: "fail", message: `Store URL rejected: ${urlCheck.error}` });
+    return makeResult(baseUrl, false, checks, null, 0, 0);
+  }
+
   // Step 1: Discover agora.json
   let manifestData: unknown;
   try {
     const manifestUrl = `${baseUrl}/.well-known/agora.json`;
-    const res = await fetch(manifestUrl);
+    const res = await safeFetch(manifestUrl);
     if (!res.ok) {
       checks.push({ name: "discovery", status: "fail", message: `/.well-known/agora.json returned ${res.status}` });
       return makeResult(baseUrl, false, checks, null, 0, 0);
@@ -35,8 +42,15 @@ export async function validateStore(storeUrl: string): Promise<StoreValidationRe
   let productsSampled = 0;
   let productErrors = 0;
 
+  const productsUrlCheck = validateExternalUrl(productsUrl);
+  if (!productsUrlCheck.valid) {
+    checks.push({ name: "endpoint_products", status: "fail", message: `Products URL rejected: ${productsUrlCheck.error}` });
+    const valid = checks.every((c) => c.status !== "fail");
+    return makeResult(baseUrl, valid, checks, manifest, productsSampled, productErrors);
+  }
+
   try {
-    const res = await fetch(productsUrl);
+    const res = await safeFetch(productsUrl);
     if (!res.ok) {
       checks.push({ name: "endpoint_products", status: "fail", message: `Products endpoint returned ${res.status}` });
     } else {

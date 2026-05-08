@@ -8,6 +8,8 @@ import { storesRouter } from "./routes/stores.js";
 import { registryRouter } from "./routes/registry.js";
 import { adapterRouter, adapterPublicRouter } from "./routes/adapter.js";
 import { commerceRouter } from "./routes/commerce.js";
+import { protocolRouter } from "./routes/protocol.js";
+import { approvalRouter } from "./routes/approval.js";
 
 import type { AppEnv } from "./types.js";
 
@@ -35,6 +37,13 @@ app.use("*", async (c, next) => {
 
 app.use("*", bodyLimit({ maxSize: 100 * 1024 })); // 100KB
 
+// Public protocol surface — landing, health, OpenAPI spec, well-known manifest, playground
+app.route("/", protocolRouter);
+
+// Public approval flow — consumer-facing approve/deny pages reached via SMS/email link.
+// The token in the URL IS the auth — must NOT be behind authMiddleware.
+app.route("/approve", approvalRouter);
+
 // Public registry routes — mounted BEFORE auth middleware
 app.route("/v1/registry", registryRouter);
 
@@ -43,7 +52,6 @@ app.route("/v1/adapter", adapterPublicRouter);
 
 app.use("/v1/*", authMiddleware);
 
-app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
 app.route("/v1/stores", storesRouter);
