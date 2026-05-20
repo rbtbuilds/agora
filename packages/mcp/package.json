@@ -1,7 +1,7 @@
 {
   "name": "agora-mcp-server",
-  "version": "0.1.0",
-  "description": "MCP server for Agora — lets AI agents search and discover products via Model Context Protocol",
+  "version": "0.2.0",
+  "description": "MCP server for Agora's open agent-commerce protocol. Search 22.5k+ products across 52 stores, build carts, and run consumer-approved checkouts. Stdio transport. Compatible with Claude Desktop, Cursor, ChatGPT.",
   "license": "MIT",
   "repository": {
     "type": "git",

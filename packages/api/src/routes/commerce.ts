@@ -20,13 +20,20 @@ commerceRouter.post("/cart", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Invalid JSON body" } }, 400);
   }
 
-  if (!body.consumerId) {
+  if (!body.consumerId || typeof body.consumerId !== "string" || body.consumerId.trim() === "") {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'consumerId' is required" } }, 400);
   }
 
   const ownerId = c.get("userId") as string;
   const id = `cart_${crypto.randomBytes(12).toString("hex")}`;
   const now = new Date();
+
+  // Ensure consumer exists — auto-create if first time we see this consumerId.
+  // The FK constraint requires consumers.id to exist before we can insert the cart.
+  await db
+    .insert(consumers)
+    .values({ id: body.consumerId } as any)
+    .onConflictDoNothing();
 
   await db.insert(carts).values({
     id,

@@ -297,7 +297,7 @@ Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
 | Products | 22,562 |
 | Stores | 52 |
 | API endpoints | 30+ |
-| Test coverage | 50 tests |
+| Test coverage | 91 tests |
 | Protocol version | 1.0 |
 
 **Roadmap:**

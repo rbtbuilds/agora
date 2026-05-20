@@ -33,6 +33,12 @@ app.use("*", async (c, next) => {
   c.res.headers.set("X-Content-Type-Options", "nosniff");
   c.res.headers.set("X-Frame-Options", "DENY");
   c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // CSP: API returns JSON for /v1/*; only /approve/:token and /playground serve HTML.
+  // Permissive enough for the approval page's inline styles, strict elsewhere.
+  c.res.headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
 });
 
 app.use("*", bodyLimit({ maxSize: 100 * 1024 })); // 100KB

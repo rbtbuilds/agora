@@ -202,7 +202,7 @@ export default function Home() {
 
             {/* MCP Config Block */}
             <div className="mb-12">
-              <div className="text-xs font-mono text-secondary uppercase tracking-wider mb-3">MCP Server Config</div>
+              <div className="text-xs font-mono text-secondary uppercase tracking-wider mb-3">MCP Server Config — Claude Desktop / Cursor</div>
               <div className="bg-surface border border-border rounded-xl p-6 overflow-x-auto">
                 <pre className="text-sm font-mono leading-relaxed text-secondary">
                   <code>
@@ -217,9 +217,24 @@ export default function Home() {
                     <span className="text-white">&quot;: {"{"}</span>
                     {"\n"}
                     <span className="text-white">{"      "}&quot;</span>
-                    <span className="text-code-key">url</span>
+                    <span className="text-code-key">command</span>
                     <span className="text-white">&quot;: </span>
-                    <span className="text-code-string">&quot;https://agora-ecru-chi.vercel.app/mcp&quot;</span>
+                    <span className="text-code-string">&quot;npx&quot;</span>
+                    <span className="text-white">,</span>
+                    {"\n"}
+                    <span className="text-white">{"      "}&quot;</span>
+                    <span className="text-code-key">args</span>
+                    <span className="text-white">&quot;: [</span>
+                    <span className="text-code-string">&quot;agora-mcp-server&quot;</span>
+                    <span className="text-white">],</span>
+                    {"\n"}
+                    <span className="text-white">{"      "}&quot;</span>
+                    <span className="text-code-key">env</span>
+                    <span className="text-white">&quot;: {"{"} &quot;</span>
+                    <span className="text-code-key">AGORA_API_KEY</span>
+                    <span className="text-white">&quot;: </span>
+                    <span className="text-code-string">&quot;ak_your_key&quot;</span>
+                    <span className="text-white"> {"}"}</span>
                     {"\n"}
                     <span className="text-white">{"    }"}</span>
                     {"\n"}
@@ -404,10 +419,10 @@ export default function Home() {
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-16">
-              <LiveStat target={20000} suffix="+" label="Products indexed" format="thousands" />
-              <LiveStat target={50} suffix="+" label="Stores on network" />
+              <LiveStat target={22500} suffix="+" label="Products indexed" format="thousands" />
+              <LiveStat target={52} suffix="" label="Stores on network" />
               <LiveStat target={30} suffix="+" label="API endpoints" />
-              <LiveStat target={112} suffix="" label="Automated tests" />
+              <LiveStat target={91} suffix="" label="Automated tests" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

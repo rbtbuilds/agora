@@ -1,7 +1,7 @@
 {
   "name": "agora-sdk",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for the Agora API — search, compare, and purchase products across e-commerce stores",
+  "version": "0.2.0",
+  "description": "TypeScript SDK for Agora's open agent-commerce protocol. Search 22.5k+ products, build carts, and run consumer-approved checkouts. Zero dependencies, full types.",
   "license": "MIT",
   "repository": {
     "type": "git",
