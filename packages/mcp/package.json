@@ -1,6 +1,6 @@
 {
   "name": "agora-mcp-server",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for Agora's open agent-commerce protocol. Search 22.5k+ products across 52 stores, build carts, and run consumer-approved checkouts. Stdio transport. Compatible with Claude Desktop, Cursor, ChatGPT.",
   "license": "MIT",
   "repository": {
@@ -8,7 +8,14 @@
     "url": "https://github.com/rbtbuilds/agora",
     "directory": "packages/mcp"
   },
-  "keywords": ["agora", "mcp", "model-context-protocol", "ai-agents", "e-commerce", "product-search"],
+  "keywords": [
+    "agora",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "e-commerce",
+    "product-search"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -16,16 +23,18 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "vitest run"
   },
   "dependencies": {
-    "agora-sdk": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1",
+    "agora-sdk": "^0.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22",
     "tsx": "^4",
-    "typescript": "^5.7"
+    "typescript": "^5.7",
+    "vitest": "^3.2.6"
   }
 }
