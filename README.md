@@ -74,6 +74,8 @@ Agents cannot charge cards without consumer approval. Every purchase requires ex
 
 A public, searchable directory of every store on the network. No authentication required. Agents query the registry to discover stores without knowing their URLs.
 
+The live network currently spans **22,562 products across 52 stores**, all queryable without an API key.
+
 ```bash
 # Browse all stores
 curl https://agora-ecru-chi.vercel.app/v1/registry
