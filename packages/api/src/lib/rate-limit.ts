@@ -34,7 +34,14 @@ function getRedis(): Redis | null {
   if (_redis === undefined) {
     const url = process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-    _redis = url && token ? new Redis({ url, token }) : null;
+    try {
+      // Construction is lazy (no network), but guard anyway so a future client
+      // change that validates here degrades to the fallback instead of 500ing.
+      _redis = url && token ? new Redis({ url, token }) : null;
+    } catch (err) {
+      logDegradation("client construction", err);
+      _redis = null;
+    }
   }
   return _redis;
 }
@@ -67,6 +74,9 @@ function memoryRecordAuthFailure(ip: string): void {
 // ---- DB usage count (quota fallback) --------------------------------------
 
 async function dbQuotaExceeded(apiKeyId: string, dailyLimit: number): Promise<boolean> {
+  // UTC day boundary -- intentionally matches the Redis `quota:<id>:<YYYY-MM-DD>`
+  // (UTC) key so both paths share one day window. (Vercel runs in UTC, so this
+  // is identical to the previous local-time behaviour in production.)
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
 
@@ -75,6 +85,9 @@ async function dbQuotaExceeded(apiKeyId: string, dailyLimit: number): Promise<bo
     .from(usageLogs)
     .where(and(eq(usageLogs.apiKeyId, apiKeyId), gte(usageLogs.timestamp, todayStart)));
 
+  // `>=`: this count is PRIOR requests only (usage is logged post-response), so
+  // it blocks the (dailyLimit+1)th request -- equivalent to the Redis path's
+  // `count > dailyLimit`, where the incr includes the current request.
   const used = Number(rows[0]?.count ?? 0);
   return used >= dailyLimit;
 }
@@ -87,8 +100,9 @@ export async function isAuthFailureLimited(ip: string): Promise<boolean> {
   if (!redis) return memoryIsAuthLimited(ip);
 
   try {
-    const count = await redis.get<number>(`authfail:${ip}`);
-    return (count ?? 0) >= AUTH_FAILURE_LIMIT;
+    // Coerce: the REST client may return the INCR'd value as a string.
+    const count = Number(await redis.get<number>(`authfail:${ip}`)) || 0;
+    return count >= AUTH_FAILURE_LIMIT;
   } catch (err) {
     logDegradation("authfail check", err);
     return false; // soft-fail OPEN
@@ -124,8 +138,9 @@ export async function isQuotaExceeded(apiKeyId: string, dailyLimit: number): Pro
   const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
   const key = `quota:${apiKeyId}:${day}`;
   try {
-    const count = await redis.incr(key);
+    const count = Number(await redis.incr(key));
     if (count === 1) await redis.expire(key, QUOTA_TTL_S);
+    // `>`: incr already counts the current request (see dbQuotaExceeded note).
     return count > dailyLimit;
   } catch (err) {
     logDegradation("quota check", err);

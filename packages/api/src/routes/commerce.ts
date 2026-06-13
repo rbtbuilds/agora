@@ -465,9 +465,15 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
   }
 
   // Post-commit side effects: webhook delivery is best-effort and must never
-  // undo a committed order, so it lives outside the transaction.
+  // undo a committed order, so it lives outside the transaction AND swallows
+  // its own errors -- a dispatch failure here must not 500 a completed order
+  // (the client would retry and double-order).
   for (const job of webhookJobs) {
-    await dispatchWebhooks(job);
+    try {
+      await dispatchWebhooks(job);
+    } catch (err) {
+      console.error(`[checkout] webhook dispatch failed for ${checkoutId}:`, err);
+    }
   }
 
   return c.json({

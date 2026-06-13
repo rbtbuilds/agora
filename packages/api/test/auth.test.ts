@@ -44,10 +44,14 @@ const redis = vi.hoisted(() => ({
   store: new Map<string, number>(),
   ttl: new Map<string, number>(),
   down: false,
+  failConstruct: false,
 }));
 
 vi.mock("@upstash/redis", () => {
   class Redis {
+    constructor() {
+      if (redis.failConstruct) throw new Error("redis client construction failed");
+    }
     async get(key: string): Promise<number | null> {
       if (redis.down) throw new Error("redis unreachable");
       return redis.store.get(key) ?? null;
@@ -97,6 +101,7 @@ beforeEach(() => {
   redis.store.clear();
   redis.ttl.clear();
   redis.down = false;
+  redis.failConstruct = false;
   __resetRateLimiter();
 });
 
@@ -216,6 +221,20 @@ describe("graceful degradation — Redis unreachable", () => {
   it("still serves valid requests via the DB-count quota fallback", async () => {
     const res = await validRequest();
     expect(res.status).toBe(200);
+  });
+});
+
+describe("Redis client construction failure — degrades, never 500s", () => {
+  beforeEach(() => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://fake.upstash.io");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "fake-token");
+    redis.failConstruct = true;
+    __resetRateLimiter();
+  });
+
+  it("falls back gracefully when the Redis client cannot be constructed", async () => {
+    const res = await validRequest();
+    expect(res.status).toBe(200); // served via the in-memory/DB fallback, not a 500
   });
 });
 

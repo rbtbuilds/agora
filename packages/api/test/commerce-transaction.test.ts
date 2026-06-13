@@ -108,7 +108,8 @@ beforeEach(() => {
   state.failOrderInsert = false;
   state.txEntered = false;
   state.ordersInserted = [];
-  dispatchWebhooks.mockClear();
+  dispatchWebhooks.mockReset();
+  dispatchWebhooks.mockResolvedValue(undefined);
 });
 
 describe("checkout approval — transactional integrity", () => {
@@ -141,6 +142,19 @@ describe("checkout approval — transactional integrity", () => {
     // webhook was dispatched for the half-written approval.
     expect(state.txEntered).toBe(true);
     expect(dispatchWebhooks).not.toHaveBeenCalled();
+  });
+
+  it("returns the committed order even when post-commit webhook delivery throws", async () => {
+    // The order is already committed; a webhook DB blip must NOT turn into a
+    // 500 (client would retry and double-order). Webhook delivery is best-effort.
+    dispatchWebhooks.mockRejectedValueOnce(new Error("webhook dispatch boom"));
+
+    const res = await approve();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.status).toBe("completed");
+    expect(body.data.orders).toHaveLength(1);
+    expect(dispatchWebhooks).toHaveBeenCalledTimes(1);
   });
 
   it("still rejects an invalid approval token before opening a transaction", async () => {
