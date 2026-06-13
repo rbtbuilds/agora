@@ -12,13 +12,14 @@
   },
   "dependencies": {
     "@agora/db": "*",
-    "hono": "^4",
-    "drizzle-orm": "^0.45"
+    "@upstash/redis": "^1.38.0",
+    "drizzle-orm": "^0.45",
+    "hono": "^4"
   },
   "devDependencies": {
+    "@types/node": "^22",
     "tsx": "^4",
     "typescript": "^5.7",
-    "vitest": "^3",
-    "@types/node": "^22"
+    "vitest": "^3"
   }
 }
