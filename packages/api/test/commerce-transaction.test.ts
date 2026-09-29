@@ -18,9 +18,16 @@ const state = vi.hoisted(() => ({
   failOrderInsert: false,
   txEntered: false,
   ordersInserted: [] as any[],
+  claimed: false,
+  concurrentBarrier: false,
+  pendingTransactions: 0,
+  releaseTransactions: null as null | (() => void),
 }));
 
 vi.mock("@agora/db", () => {
+  const checkouts = {};
+  const carts = {};
+
   function dbSelectCheckout() {
     return {
       from: () => ({
@@ -33,7 +40,17 @@ vi.mock("@agora/db", () => {
 
   function makeTx() {
     return {
-      update: () => ({ set: () => ({ where: () => Promise.resolve(undefined) }) }),
+      update: (table: unknown) => ({ set: () => ({
+        where: () => table === checkouts
+          ? {
+            returning: async () => {
+              if (state.claimed) return [];
+              state.claimed = true;
+              return [{ id: "co_1" }];
+            },
+          }
+          : Promise.resolve(undefined),
+      }) }),
       select: () => ({
         from: () => ({
           leftJoin: () => ({ where: () => Promise.resolve(state.items) }),
@@ -54,12 +71,27 @@ vi.mock("@agora/db", () => {
   return {
     db: {
       select: vi.fn(dbSelectCheckout),
+      update: vi.fn(() => ({ set: () => ({ where: () => ({
+        returning: async () => {
+          if (state.claimed) return [];
+          state.claimed = true;
+          return [{ id: "co_1" }];
+        },
+      }) }) })),
       transaction: vi.fn(async (cb: any) => {
         state.txEntered = true;
+        if (state.concurrentBarrier) {
+          state.pendingTransactions++;
+          if (state.pendingTransactions === 2) {
+            state.releaseTransactions?.();
+          } else {
+            await new Promise<void>((resolve) => { state.releaseTransactions = resolve; });
+          }
+        }
         return cb(makeTx());
       }),
     },
-    carts: {}, cartItems: {}, checkouts: {}, orders: {}, products: {}, stores: {},
+    carts, cartItems: {}, checkouts, orders: {}, products: {}, stores: {},
     consumers: {}, paymentMethods: {},
   };
 });
@@ -92,6 +124,14 @@ function approve(token = TOKEN) {
   });
 }
 
+function deny() {
+  return appAs("user_a").request("/v1/checkout/co_1/deny", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approvalToken: TOKEN }),
+  });
+}
+
 beforeEach(() => {
   state.checkout = {
     id: "co_1",
@@ -100,6 +140,7 @@ beforeEach(() => {
     ownerId: "user_a",
     status: "pending",
     approvalToken: TOKEN,
+    totalAmount: "20.00",
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
   };
   state.items = [
@@ -108,6 +149,10 @@ beforeEach(() => {
   state.failOrderInsert = false;
   state.txEntered = false;
   state.ordersInserted = [];
+  state.claimed = false;
+  state.concurrentBarrier = false;
+  state.pendingTransactions = 0;
+  state.releaseTransactions = null;
   dispatchWebhooks.mockReset();
   dispatchWebhooks.mockResolvedValue(undefined);
 });
@@ -161,6 +206,32 @@ describe("checkout approval — transactional integrity", () => {
     const res = await approve("appr_wrong_token_xxxx");
     expect(res.status).toBe(403);
     expect(state.txEntered).toBe(false);
+    expect(dispatchWebhooks).not.toHaveBeenCalled();
+  });
+
+  it("creates only one order when two approvals race", async () => {
+    state.concurrentBarrier = true;
+
+    const [first, second] = await Promise.all([approve(), approve()]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+    expect(state.ordersInserted).toHaveLength(1);
+    expect(dispatchWebhooks).toHaveBeenCalledTimes(1);
+  });
+
+  it("denies a pending checkout only once", async () => {
+    const [first, second] = await Promise.all([deny(), deny()]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+  });
+
+  it("rejects approval if the cart total changed after checkout began", async () => {
+    state.items[0].priceAtAdd = "11.00";
+
+    const res = await approve();
+
+    expect(res.status).toBe(409);
+    expect(state.ordersInserted).toHaveLength(0);
     expect(dispatchWebhooks).not.toHaveBeenCalled();
   });
 });

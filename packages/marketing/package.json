@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx tailwindcss -i app/globals.css -o app/tailwind.css --watch & next dev --port 3002",
+    "dev": "npx tailwindcss -i app/globals.css -o app/tailwind.css --watch & next dev --port 3003",
     "build": "npx tailwindcss -i app/globals.css -o app/tailwind.css --minify && next build",
     "start": "next start"
   },

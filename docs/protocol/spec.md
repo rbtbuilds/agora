@@ -438,18 +438,20 @@ Stores MUST NOT make breaking changes to a capability endpoint without increment
 
 ## 9. Validation
 
-Before going live, store operators SHOULD validate their manifest and endpoints using the official Agora validator:
+Before going live, store operators SHOULD validate their manifest and product feed using the validator built from this repository:
 
 ```
-npx @agora/validator https://yourstore.com
+npm run build --workspace @agora/validator
+node packages/validator/dist/cli.js https://yourstore.com
 ```
 
 The validator will:
 
 1. Fetch and validate `/.well-known/agora.json` against the JSON Schema
-2. Test each declared capability endpoint
-3. Verify response shapes match the expected schemas
-4. Check that required fields are present in product responses
+2. Check that the declared products endpoint is reachable
+3. Sample up to five products and validate their required fields
+
+The validator package is not currently published to npm. It does not yet probe every optional capability.
 5. Report warnings for missing optional but recommended fields
 
 ### Example Output

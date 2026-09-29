@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import crypto from "node:crypto";
 import { db, carts, cartItems, checkouts, orders, products, stores, consumers, paymentMethods } from "@agora/db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, gt, sql, desc } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
 import type { AppEnv } from "../types.js";
 
 const commerceRouter = new Hono<AppEnv>();
+
+class CartChangedError extends Error {}
 
 // ---------------------------------------------------------------------------
 // Cart
@@ -125,6 +127,11 @@ commerceRouter.post("/cart/:id/items", async (c) => {
 
   if (!body.productId) {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'productId' is required" } }, 400);
+  }
+
+  if (body.quantity !== undefined &&
+    (!Number.isInteger(body.quantity) || body.quantity < 1 || body.quantity > 2_147_483_647)) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Quantity must be a positive integer" } }, 400);
   }
 
   const ownerId = c.get("userId") as string;
@@ -371,12 +378,20 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
   // Atomic: checkout/cart status updates + per-store order inserts all commit
   // together or not at all. A crash mid-flow no longer leaves a completed
   // checkout with zero orders.
+  let approved = false;
   try {
-    await db.transaction(async (tx) => {
-      await tx
+    approved = await db.transaction(async (tx) => {
+      const [claimed] = await tx
         .update(checkouts)
         .set({ status: "completed" } as any)
-        .where(eq(checkouts.id, checkoutId));
+        .where(and(
+          eq(checkouts.id, checkoutId),
+          eq(checkouts.status, "pending"),
+          gt(checkouts.expiresAt, new Date()),
+        ))
+        .returning({ id: checkouts.id });
+
+      if (!claimed) return false;
 
       await tx
         .update(carts)
@@ -396,6 +411,13 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
         .from(cartItems)
         .leftJoin(products, eq(cartItems.productId, products.id))
         .where(eq(cartItems.cartId, checkout.cartId));
+
+      const currentTotal = itemRows.reduce(
+        (sum, item) => sum + parseFloat(item.priceAtAdd) * item.quantity, 0
+      ).toFixed(2);
+      if (itemRows.length === 0 || currentTotal !== checkout.totalAmount) {
+        throw new CartChangedError("Cart changed after checkout began");
+      }
 
       // Group cart items by storeId -- one order per store
       const byStore = new Map<string, typeof itemRows>();
@@ -455,12 +477,25 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
           });
         }
       }
+      return true;
     });
   } catch (err) {
+    if (err instanceof CartChangedError) {
+      return c.json({
+        error: { code: "CONFLICT", message: "Cart changed after checkout began; create a new checkout" },
+      }, 409);
+    }
     console.error(`[checkout] approval transaction failed for ${checkoutId}:`, err);
     return c.json(
       { error: { code: "INTERNAL", message: "Failed to complete checkout" } },
       500
+    );
+  }
+
+  if (!approved) {
+    return c.json(
+      { error: { code: "CONFLICT", message: "Checkout is no longer pending" } },
+      409
     );
   }
 
@@ -531,10 +566,19 @@ commerceRouter.post("/checkout/:id/deny", async (c) => {
     return c.json({ error: { code: "GONE", message: "Checkout has expired" } }, 410);
   }
 
-  await db
+  const [denied] = await db
     .update(checkouts)
     .set({ status: "denied" } as any)
-    .where(eq(checkouts.id, checkoutId));
+    .where(and(
+      eq(checkouts.id, checkoutId),
+      eq(checkouts.status, "pending"),
+      gt(checkouts.expiresAt, new Date()),
+    ))
+    .returning({ id: checkouts.id });
+
+  if (!denied) {
+    return c.json({ error: { code: "CONFLICT", message: "Checkout is no longer pending" } }, 409);
+  }
 
   return c.json({ data: { status: "denied" } });
 });

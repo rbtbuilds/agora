@@ -169,13 +169,17 @@ All other fields are optional, but agents will return richer results and better 
 
 ## Step 4: Validate
 
-Run the official Agora validator against your store:
+Build the validator from the Agora repository and run it against your store. The validator is not currently published to npm.
 
 ```bash
-npx @agora/validator https://yourstore.com
+git clone https://github.com/rbtbuilds/agora.git
+cd agora
+npm ci
+npm run build --workspace @agora/validator
+node packages/validator/dist/cli.js https://yourstore.com
 ```
 
-The validator fetches your manifest, tests each declared capability, and verifies that responses conform to the expected schema. Fix any reported errors before proceeding.
+The validator fetches your manifest, checks the products endpoint, and samples up to five products against the expected schema. Fix any reported errors before proceeding.
 
 Common issues caught by the validator:
 
@@ -189,9 +193,16 @@ Common issues caught by the validator:
 
 ## Step 5: Register with Agora
 
-Once your store is validated, register it in the Agora directory so agents can discover it.
+Once your store is validated, register it in the Agora directory with an API key from the [developer portal](https://agora-portal.vercel.app):
 
-**Registration is coming soon.** In the meantime, your store is discoverable by any agent that fetches `/.well-known/agora.json` from your domain.
+```bash
+curl -X POST https://agora-ecru-chi.vercel.app/v1/stores/register \
+  -H "Authorization: Bearer ak_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://yourstore.com"}'
+```
+
+To claim ownership of the listing, add `"verification": { "owner_id": "your_portal_user_id" }` to your manifest and register again. The registration response includes a verification hint when ownership is unconfirmed.
 
 ---
 
@@ -311,7 +322,7 @@ app.listen(3000);
 | 1 | Create `agora.json` | 5 minutes |
 | 2 | Serve at `/.well-known/agora.json` | 5 minutes |
 | 3 | Implement `/products` and `/product/{id}` | 30–60 minutes |
-| 4 | Run `npx @agora/validator` | 2 minutes |
-| 5 | Register (coming soon) | — |
+| 4 | Build and run the repository validator | 2 minutes |
+| 5 | Register with an Agora API key | 2 minutes |
 
-If you run into issues, see the [full specification](./spec.md) or open an issue at https://github.com/agora-protocol/spec.
+If you run into issues, see the [full specification](./spec.md) or [open an issue](https://github.com/rbtbuilds/agora/issues).

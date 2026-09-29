@@ -96,6 +96,18 @@ describe("commerce — input validation & shape", () => {
     expect(res.status).toBe(400);
   });
 
+  it.each([-1, 0, 1.5, "2", null, 2_147_483_648])(
+    "POST /v1/cart/:id/items rejects invalid quantity %s",
+    async (quantity) => {
+      const res = await appAs("user_a").request("/v1/cart/cart_a/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: "agr_xyz", quantity }),
+      });
+      expect(res.status).toBe(400);
+    }
+  );
+
   it("POST /v1/checkout returns 400 when cartId or consumerId missing", async () => {
     const res = await appAs("user_a").request("/v1/checkout", {
       method: "POST",

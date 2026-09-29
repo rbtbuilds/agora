@@ -1,12 +1,25 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import crypto from "node:crypto";
-import { db, checkouts, cartItems, products, stores, paymentMethods, carts, orders } from "@agora/db";
-import { eq } from "drizzle-orm";
+import { db, checkouts, cartItems, products, stores, carts, orders } from "@agora/db";
+import { and, eq, gt } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
 import { DESIGN_TOKENS_CSS } from "../lib/design-tokens.js";
 
 const approvalRouter = new Hono();
+
+class CartChangedError extends Error {}
+
+function escapeHtml(value: string): string {
+  const entities: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return value.replace(/[&<>"']/g, (character) => entities[character]);
+}
 
 // CSRF guard for the public approval POST endpoints. The token in the URL is
 // the auth, but a malicious page that learns a token could still auto-submit a
@@ -91,8 +104,8 @@ function approvalErrorPage(title: string, message: string, icon = "&#128274;"): 
 <body>
   <div class="card">
     <div class="icon">${icon}</div>
-    <h1>${title}</h1>
-    <p class="message">${message}</p>
+    <h1>${escapeHtml(title)}</h1>
+    <p class="message">${escapeHtml(message)}</p>
   </div>
 </body>
 </html>`;
@@ -113,8 +126,8 @@ approvalRouter.get("/:token", async (c) => {
   if (checkout.status !== "pending") {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
-      `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`,
+      `Order request already ${statusMsg}`,
+      `This order request has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
@@ -132,11 +145,14 @@ approvalRouter.get("/:token", async (c) => {
     .leftJoin(stores, eq(cartItems.storeId, stores.id))
     .where(eq(cartItems.cartId, checkout.cartId));
 
-  let cardInfo = "Card on file";
-  if (checkout.paymentMethodId) {
-    const pm = await db.select().from(paymentMethods)
-      .where(eq(paymentMethods.id, checkout.paymentMethodId)).limit(1);
-    if (pm.length > 0) cardInfo = `${pm[0].brand} ending in ${pm[0].last4}`;
+  const currentTotal = items.reduce(
+    (sum, item) => sum + parseFloat(item.price) * item.quantity, 0
+  ).toFixed(2);
+  if (items.length === 0 || currentTotal !== checkout.totalAmount) {
+    return c.html(approvalErrorPage(
+      "Order request changed",
+      "The cart changed after this approval was requested. Ask the agent to start a new checkout.",
+    ), 409);
   }
 
   const now = new Date();
@@ -144,11 +160,11 @@ approvalRouter.get("/:token", async (c) => {
   const expiryText = minutesLeft <= 1 ? "less than a minute" : `${minutesLeft} min`;
 
   const itemsHtml = items.map((item) => {
-    const storeLabel = item.storeName ? ` &middot; ${item.storeName}` : "";
+    const storeLabel = item.storeName ? ` &middot; ${escapeHtml(item.storeName)}` : "";
     const lineTotal = (parseFloat(item.price) * item.quantity).toFixed(2);
     return `<div class="item">
       <div>
-        <div class="item-name">${item.name} <span class="item-qty">&times;${item.quantity}</span></div>
+        <div class="item-name">${escapeHtml(item.name)} <span class="item-qty">&times;${item.quantity}</span></div>
         <div class="item-meta">$${item.price}${storeLabel}</div>
       </div>
       <div class="item-total">$${lineTotal}</div>
@@ -225,8 +241,8 @@ approvalRouter.get("/:token", async (c) => {
 <body>
   <div class="card">
     <div class="pill"><span class="dot"></span> Agora Checkout</div>
-    <h1>Approve this purchase?</h1>
-    <p class="subtitle" style="margin-bottom:1rem;">An agent wants to make the following purchase:</p>
+    <h1>Review this order request</h1>
+    <p class="subtitle" style="margin-bottom:1rem;">An agent has prepared the following order:</p>
     <div class="items">${itemsHtml}</div>
     <hr class="divider">
     <div class="summary-row">
@@ -234,14 +250,15 @@ approvalRouter.get("/:token", async (c) => {
       <span class="total-amount">$${checkout.totalAmount}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-label">Card</span>
-      <span class="summary-value">${cardInfo}</span>
+      <span class="summary-label">Payment</span>
+      <span class="summary-value">Not connected</span>
     </div>
+    <p class="subtitle">Approving records an order in Agora. No card will be charged or purchase completed.</p>
     <div class="actions">
-      <form action="/approve/${token}/confirm" method="POST" style="flex:1;">
-        <button type="submit" class="btn btn-approve" style="width:100%;">Approve</button>
+      <form action="/approve/${encodeURIComponent(token)}/confirm" method="POST" style="flex:1;">
+        <button type="submit" class="btn btn-approve" style="width:100%;">Approve order request</button>
       </form>
-      <form action="/approve/${token}/deny" method="POST" style="flex:1;">
+      <form action="/approve/${encodeURIComponent(token)}/deny" method="POST" style="flex:1;">
         <button type="submit" class="btn btn-deny" style="width:100%;">Deny</button>
       </form>
     </div>
@@ -269,8 +286,8 @@ approvalRouter.post("/:token/confirm", async (c) => {
   if (checkout.status !== "pending") {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
-      `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`,
+      `Order request already ${statusMsg}`,
+      `This order request has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
@@ -278,81 +295,119 @@ approvalRouter.post("/:token/confirm", async (c) => {
     return c.html(approvalErrorPage("Approval link expired", "This approval link has expired."), 410);
   }
 
-  const items = await db.select({
-    productId: cartItems.productId,
-    storeId: cartItems.storeId,
-    quantity: cartItems.quantity,
-    price: cartItems.priceAtAdd,
-    name: products.name,
-  }).from(cartItems)
-    .innerJoin(products, eq(cartItems.productId, products.id))
-    .where(eq(cartItems.cartId, checkout.cartId));
+  const webhookJobs: Array<{ event: string; store_id: string; data: Record<string, unknown> }> = [];
+  let approved = false;
 
-  // Group cart items by storeId — one order per store (matches commerce.ts approve flow)
-  const byStore = new Map<string | null, typeof items>();
-  for (const item of items) {
-    const key = item.storeId ?? null;
-    if (!byStore.has(key)) byStore.set(key, []);
-    byStore.get(key)!.push(item);
-  }
+  try {
+    approved = await db.transaction(async (tx) => {
+      const [claimed] = await tx.update(checkouts)
+        .set({ status: "completed" })
+        .where(and(
+          eq(checkouts.id, checkout.id),
+          eq(checkouts.status, "pending"),
+          gt(checkouts.expiresAt, new Date()),
+        ))
+        .returning({ id: checkouts.id });
 
-  const createdOrders: Array<{ id: string; storeId: string | null; totalAmount: string }> = [];
+      if (!claimed) return false;
 
-  for (const [storeId, storeItems] of byStore) {
-    const orderId = `ord_${crypto.randomBytes(12).toString("hex")}`;
-    const orderTotal = storeItems
-      .reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0)
-      .toFixed(2);
+      const items = await tx.select({
+        productId: cartItems.productId,
+        storeId: cartItems.storeId,
+        quantity: cartItems.quantity,
+        price: cartItems.priceAtAdd,
+        name: products.name,
+      }).from(cartItems)
+        .innerJoin(products, eq(cartItems.productId, products.id))
+        .where(eq(cartItems.cartId, checkout.cartId));
 
-    const itemsSnapshot = storeItems.map((i) => ({
-      productId: i.productId,
-      name: i.name,
-      quantity: i.quantity,
-      price: i.price,
-    }));
+      const currentTotal = items.reduce(
+        (sum, item) => sum + parseFloat(item.price) * item.quantity, 0
+      ).toFixed(2);
+      if (items.length === 0 || currentTotal !== checkout.totalAmount) {
+        throw new CartChangedError("Cart changed after checkout began");
+      }
 
-    await db.insert(orders).values({
-      id: orderId,
-      checkoutId: checkout.id,
-      consumerId: checkout.consumerId,
-      ownerId: checkout.ownerId,
-      storeId: storeId ?? undefined,
-      status: "confirmed",
-      totalAmount: orderTotal,
-      items: itemsSnapshot,
-    });
+      const byStore = new Map<string | null, typeof items>();
+      for (const item of items) {
+        const key = item.storeId ?? null;
+        if (!byStore.has(key)) byStore.set(key, []);
+        byStore.get(key)!.push(item);
+      }
 
-    createdOrders.push({ id: orderId, storeId, totalAmount: orderTotal });
+      for (const [storeId, storeItems] of byStore) {
+        const orderId = `ord_${crypto.randomBytes(12).toString("hex")}`;
+        const orderTotal = storeItems
+          .reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0)
+          .toFixed(2);
+        const itemsSnapshot = storeItems.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        }));
 
-    if (storeId) {
-      await dispatchWebhooks({
-        event: "order.created",
-        store_id: storeId,
-        data: {
-          orderId,
+        await tx.insert(orders).values({
+          id: orderId,
           checkoutId: checkout.id,
           consumerId: checkout.consumerId,
+          ownerId: checkout.ownerId,
+          storeId,
+          status: "confirmed",
           totalAmount: orderTotal,
           items: itemsSnapshot,
-        },
-      });
+        });
+
+        if (storeId) {
+          webhookJobs.push({
+            event: "order.created",
+            store_id: storeId,
+            data: {
+              orderId,
+              checkoutId: checkout.id,
+              consumerId: checkout.consumerId,
+              totalAmount: orderTotal,
+              items: itemsSnapshot,
+            },
+          });
+        }
+      }
+
+      await tx.update(carts)
+        .set({ status: "checked_out" })
+        .where(eq(carts.id, checkout.cartId));
+
+      return true;
+    });
+  } catch (error) {
+    if (error instanceof CartChangedError) {
+      return c.html(approvalErrorPage(
+        "Order request changed",
+        "The cart changed after this approval was requested. Ask the agent to start a new checkout.",
+      ), 409);
     }
+    console.error(`[checkout] browser approval failed for ${checkout.id}:`, error);
+    return c.html(approvalErrorPage("Approval failed", "The order request was not recorded. Please try again."), 500);
   }
 
-  await db.update(checkouts)
-    .set({ status: "completed" })
-    .where(eq(checkouts.id, checkout.id));
+  if (!approved) {
+    return c.html(approvalErrorPage("Order request already handled", "This order request is no longer pending."), 409);
+  }
 
-  await db.update(carts)
-    .set({ status: "checked_out" })
-    .where(eq(carts.id, checkout.cartId));
+  for (const job of webhookJobs) {
+    try {
+      await dispatchWebhooks(job);
+    } catch (error) {
+      console.error(`[checkout] browser approval webhook failed for ${checkout.id}:`, error);
+    }
+  }
 
   return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Purchase Approved</title>
+  <title>Order Request Approved</title>
   <style>${APPROVAL_BASE_STYLES}
     .card { text-align: center; }
     .icon { font-size: 2.5rem; margin-bottom: 1rem; }
@@ -369,9 +424,9 @@ approvalRouter.post("/:token/confirm", async (c) => {
 <body>
   <div class="card">
     <div class="pill"><span class="dot"></span> Approved</div>
-    <h1>Purchase approved</h1>
+    <h1>Order request approved</h1>
     <div class="amount">$${checkout.totalAmount}</div>
-    <p class="message">Your purchase has been approved and is being processed. You will receive a confirmation shortly.</p>
+    <p class="message">Agora recorded this order request. No card was charged or purchase completed.</p>
   </div>
 </body>
 </html>`);
@@ -395,18 +450,27 @@ approvalRouter.post("/:token/deny", async (c) => {
   if (checkout.status !== "pending") {
     const statusMsg = checkout.status === "completed" ? "approved" : checkout.status;
     return c.html(approvalErrorPage(
-      `Purchase already ${statusMsg}`,
-      `This purchase has already been ${statusMsg}. No further action is needed.`,
+      `Order request already ${statusMsg}`,
+      `This order request has already been ${statusMsg}. No further action is needed.`,
     ), 410);
   }
 
-  await db.update(checkouts)
+  const [denied] = await db.update(checkouts)
     .set({ status: "denied" })
-    .where(eq(checkouts.id, checkout.id));
+    .where(and(
+      eq(checkouts.id, checkout.id),
+      eq(checkouts.status, "pending"),
+      gt(checkouts.expiresAt, new Date()),
+    ))
+    .returning({ id: checkouts.id });
+
+  if (!denied) {
+    return c.html(approvalErrorPage("Order request already handled", "This order request is no longer pending."), 409);
+  }
 
   return c.html(approvalErrorPage(
-    "Purchase denied",
-    "You have denied this purchase. The agent has been notified and no charge has been made.",
+    "Order request denied",
+    "This order request was denied. No payment was attempted.",
     "&#128683;",
   ));
 });

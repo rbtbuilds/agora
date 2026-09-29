@@ -2,9 +2,9 @@
 
 **The open protocol for agent commerce.**
 
-The internet was built for human browsers. AI agents need to discover, search, and transact with stores programmatically -but today's web has no standard interface for them. Agora defines that interface.
+The internet was built for human browsers. AI agents need a consistent way to discover and search stores programmatically. Agora defines an open store manifest and provides a registry, API, SDK, and MCP server around it.
 
-Agora is an open protocol, a commerce transaction layer, a public registry, and a complete toolkit for AI agents. Stores adopt the protocol. Agents discover, search, compare, and purchase across all of them through a single API.
+The registry and product search are live. Cart, checkout approval, and order creation are implemented as a prototype; card charging and automated approval delivery are not yet connected.
 
 [![License: MIT + BSL](https://img.shields.io/badge/License-MIT%20%2B%20BSL-blue.svg)](LICENSE)
 [![CI](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml)
@@ -45,28 +45,22 @@ Full specification: [docs/protocol/spec.md](docs/protocol/spec.md) | Product sch
 
 ---
 
-## The Commerce Layer
+## Checkout Prototype
 
-Agents don't just search -they buy. Agora provides a complete transaction flow with consumer-approved payments.
+The API lets agents build a cart, request approval, and record an order after approval. This flow demonstrates the consent and order model; it does not charge a card or complete a real purchase.
 
 ```
 Consumer: "Buy me those hiking boots"
-Agent:    POST /v1/cart → adds product
-Agent:    POST /v1/checkout → initiates purchase
-Agora:    "Approve $89.99 at Allbirds?"
+Agent:    POST /v1/cart -> adds product
+Agent:    POST /v1/checkout -> requests approval
+Agora:    "Approve $89.99 at Example Store?"
 Consumer: "Yes"
-Agent:    POST /v1/checkout/:id/approve
-Agora:    Charges card, creates order, notifies store
-Agent:    "Done! Order confirmed."
+Agent:    POST /v1/checkout/:id/approve -> records a prototype order
 ```
 
-**How it works:**
-1. Consumers save a payment method with Agora (via Stripe)
-2. Agents build carts and request checkout
-3. Consumers approve purchases inline (agent asks directly) or via SMS/email link
-4. Agora charges the card and forwards the order to the store
+**Implemented:** cart creation, a 15-minute approval token, inline approval or a browser approval page, order records, and order webhooks. The `async` approval mode does not send SMS or email yet. Payment processing and fulfillment are future work, so do not use this flow for real purchases.
 
-Agents cannot charge cards without consumer approval. Every purchase requires explicit consent. Approval tokens are single-use and expire in 15 minutes.
+Approval tokens expire in 15 minutes. See [the checkout routes](packages/api/src/routes/commerce.ts) and [approval page](packages/api/src/routes/approval.ts) for the current implementation.
 
 ---
 
@@ -74,7 +68,7 @@ Agents cannot charge cards without consumer approval. Every purchase requires ex
 
 A public, searchable directory of every store on the network. No authentication required. Agents query the registry to discover stores without knowing their URLs.
 
-The live network currently spans **22,562 products across 52 stores**, all queryable without an API key.
+The live registry reported **22,562 products across 52 indexed stores** on 2026-09-29. All 52 stores were indexed through scraping at that time; none were native protocol adopters. Registry queries do not require an API key.
 
 ```bash
 # Browse all stores
@@ -84,7 +78,7 @@ curl https://agora-ecru-chi.vercel.app/v1/registry
 curl https://agora-ecru-chi.vercel.app/v1/registry?q=outdoor
 
 # Filter and sort
-curl https://agora-ecru-chi.vercel.app/v1/registry?source=native&sort=score
+curl 'https://agora-ecru-chi.vercel.app/v1/registry?source=scraped&sort=score'
 
 # Network stats
 curl https://agora-ecru-chi.vercel.app/v1/registry/stats
@@ -151,12 +145,13 @@ Interactive playground: [agora-ecru-chi.vercel.app/playground](https://agora-ecr
 
 ## For Stores
 
-### Option 1: Shopify Adapter (zero config)
+### Option 1: Hosted Shopify Adapter
 
-Any Shopify store can join the protocol instantly. No code changes. One API call.
+A Shopify store with a public `products.json` feed can be adapted without changing the store. The registration call requires an Agora API key.
 
 ```bash
 curl -X POST https://agora-ecru-chi.vercel.app/v1/adapter/shopify \
+  -H "Authorization: Bearer ak_your_key" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://your-shopify-store.com"}'
 ```
@@ -170,15 +165,15 @@ Implement the protocol directly for full control.
 1. Create your `agora.json` -declare capabilities and endpoints
 2. Serve it at `/.well-known/agora.json`
 3. Implement the required endpoints (`products` and `product`)
-4. Validate: `npx @agora/validator https://yourdomain.com`
-5. Register: `POST /v1/stores/register` with your URL
+4. Build and run the validator from this repository: `npm run build --workspace @agora/validator && node packages/validator/dist/cli.js https://yourdomain.com`
+5. Register with an API key: `POST /v1/stores/register` with your URL
 
 Getting started guide: [docs/protocol/getting-started.md](docs/protocol/getting-started.md)
 
 ### What Stores Get
 
 - **Listed in the public registry** -agents discover your store automatically
-- **Agent commerce** -agents can build carts and purchase from your store with consumer approval
+- **Checkout prototype** -agents can build carts and record an approved order; live payments are not connected
 - **Analytics** -see how agents interact with your products (queries, views, trends)
 - **Trust score** -protocol compliance rating that agents use to prioritize stores
 - **Webhooks** -real-time notifications for searches, product views, and orders
@@ -200,6 +195,13 @@ Monorepo managed by [Turborepo](https://turbo.build/). CI via GitHub Actions.
 | `packages/portal` | Developer portal with auth and billing (Next.js) |
 | `packages/demo` | Demo application with AI chat agent (Next.js) |
 | `crawler/` | Data ingestion -Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
+
+### Engineering Highlights
+
+- [Protocol validator](packages/validator/src/validate-store.ts) checks manifests and samples product feeds, with URL validation before fetching external endpoints.
+- [Typed SDK](packages/sdk/src/index.ts) and [MCP server](packages/mcp/src/index.ts) expose the same discovery and prototype checkout API to different agent clients.
+- [Checkout approval](packages/api/src/routes/commerce.ts) claims a pending request once inside a database transaction, rejects changed cart totals, creates order records atomically, and starts webhook delivery after commit. The [browser approval page](packages/api/src/routes/approval.ts) follows the same rule.
+- [CI](.github/workflows/ci.yml) builds every package, typechecks test files, runs the test suites, and checks the validator CLI. [CodeQL](.github/workflows/codeql.yml) runs on pushes, pull requests, and a weekly schedule.
 
 ---
 
@@ -267,44 +269,35 @@ OpenAPI spec: [`/openapi.json`](https://agora-ecru-chi.vercel.app/openapi.json) 
 ```bash
 git clone https://github.com/rbtbuilds/agora.git
 cd agora
-npm install
-
-# Configure environment
-cp .env.example .env
-# Set DATABASE_URL in .env
-
-# Run database migrations
-cd packages/db && npx drizzle-kit migrate && cd ../..
-
-# Build all packages
+npm ci
 npm run build
-
-# Run tests
 npm run test
 
-# Start development
+# To run the API locally, provide a PostgreSQL URL with pgvector installed.
+export DATABASE_URL='postgresql://user:pass@localhost:5432/agora'
+npm run migrate --workspace @agora/db
 npm run dev
 ```
 
-Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
+Prerequisites: Node.js 22+ for building and testing; PostgreSQL 16+ with pgvector for database-backed API routes. `npm run dev` starts the API on port 3000, demo on 3001, portal on 3002, and marketing site on 3003. Other integrations need the variables described in [.env.example](.env.example).
 
 ---
 
 ## Status
 
-**22,000+ products** indexed across **52 stores**. Full commerce transaction layer. Protocol v1.0.
+**22,000+ products** indexed across **52 stores** as of 2026-09-29. Protocol v1.0, with a checkout prototype.
 
 | Metric | Value |
 |--------|-------|
 | Products | 22,562 |
 | Stores | 52 |
 | API endpoints | 30+ |
-| Test coverage | 91 tests |
+| Automated checks | Build, tests, and CodeQL in CI |
 | Protocol version | 1.0 |
 
 **Roadmap:**
 - Semantic search with pgvector embeddings
-- Stripe live payment processing
+- Card charging and automated approval link delivery
 - Marketing site and custom domains
 - 100k+ products across 200+ stores
 
@@ -315,4 +308,4 @@ Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
 Dual licensed:
 
 - **Protocol, Validator, SDK, MCP Server** - [MIT](LICENSE). Use freely. Build on it. The protocol is an open standard.
-- **API, Platform, Portal, Crawler** - [Business Source License 1.1](LICENSE-BSL). Source available for reading, learning, and non-production use. Commercial production use requires a license. Converts to Apache 2.0 on 2030-04-07.
+- **API, Platform, Portal, Crawler** - [Business Source License 1.1](LICENSE). The license permits internal, educational, personal, evaluation, and non-competing use; competing commercial production use requires a separate license. The change date is 2030-04-07.
