@@ -3,10 +3,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { handleToolCall } from "./handlers.js";
+import { VERSION } from "./version.js";
 
 const server = new McpServer({
   name: "agora",
-  version: "0.1.2",
+  version: VERSION,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

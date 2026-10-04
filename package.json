@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
     "test": "turbo test",
     "dev": "turbo dev"
   },

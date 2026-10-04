@@ -4,6 +4,8 @@ TypeScript SDK for the [Agora API](https://github.com/rbtbuilds/agora) — the o
 
 Protocol v1.0 · MIT licensed · Zero dependencies · Full TypeScript types.
 
+**Checkout is a prototype:** approval records an order but does not charge a card or complete a real purchase. Do not use it for live transactions.
+
 ## Install
 
 ```bash
@@ -117,7 +119,7 @@ new Agora({
 
 ## Consent model
 
-Agora never lets an agent charge a card without explicit consumer consent. Approval tokens are single-use and expire in 15 minutes. The server uses timing-safe comparison on token verification.
+Card charging is not connected. Approval tokens expire in 15 minutes; the authenticated API uses timing-safe comparison when checking a token.
 
 ## License
 

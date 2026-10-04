@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { db, apiKeys, usageLogs } from "@agora/db";
-import { eq, and, isNull, gte, sql } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
+import { isAuthFailureLimited, recordAuthFailure, isQuotaExceeded } from "../lib/rate-limit.js";
 
 const TIER_LIMITS: Record<string, number> = {
   free: 100,
@@ -8,37 +9,10 @@ const TIER_LIMITS: Record<string, number> = {
   enterprise: 999999,
 };
 
-// In-memory auth failure tracker (per IP, resets on cold start)
-const authFailures = new Map<string, { count: number; resetAt: number }>();
-const AUTH_FAILURE_LIMIT = 10;
-const AUTH_FAILURE_WINDOW_MS = 60_000; // 1 minute
-
-function checkAuthRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = authFailures.get(ip);
-
-  if (!record || now > record.resetAt) {
-    return true; // no record or window expired
-  }
-
-  return record.count < AUTH_FAILURE_LIMIT;
-}
-
-function recordAuthFailure(ip: string): void {
-  const now = Date.now();
-  const record = authFailures.get(ip);
-
-  if (!record || now > record.resetAt) {
-    authFailures.set(ip, { count: 1, resetAt: now + AUTH_FAILURE_WINDOW_MS });
-  } else {
-    record.count++;
-  }
-}
-
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
-  if (!checkAuthRateLimit(ip)) {
+  if (await isAuthFailureLimited(ip)) {
     return c.json(
       { error: { code: "RATE_LIMITED", message: "Too many failed authentication attempts" } },
       429
@@ -48,7 +22,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    recordAuthFailure(ip);
+    await recordAuthFailure(ip);
     console.warn(`[auth] failure from ${ip}: missing_header`, { endpoint: c.req.path, keyPrefix: "none" });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Missing API key" } },
@@ -59,7 +33,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const apiKey = authHeader.slice(7);
 
   if (!apiKey.startsWith("ak_")) {
-    recordAuthFailure(ip);
+    await recordAuthFailure(ip);
     console.warn(`[auth] failure from ${ip}: invalid_format`, { endpoint: c.req.path, keyPrefix: apiKey.slice(0, 7) });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Invalid API key format" } },
@@ -75,7 +49,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     .limit(1);
 
   if (keyResult.length === 0) {
-    recordAuthFailure(ip);
+    await recordAuthFailure(ip);
     console.warn(`[auth] failure from ${ip}: invalid_or_revoked_key`, { endpoint: c.req.path, keyPrefix: apiKey.slice(0, 7) });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Invalid or revoked API key" } },
@@ -87,17 +61,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const tier = key.tier ?? "free";
   const dailyLimit = TIER_LIMITS[tier] ?? 100;
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const usageResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(usageLogs)
-    .where(and(eq(usageLogs.apiKeyId, apiKey), gte(usageLogs.timestamp, todayStart)));
-
-  const todayUsage = Number(usageResult[0]?.count ?? 0);
-
-  if (todayUsage >= dailyLimit) {
+  if (await isQuotaExceeded(apiKey, dailyLimit)) {
     return c.json(
       { error: { code: "RATE_LIMITED", message: `Daily limit of ${dailyLimit} requests exceeded. Upgrade your plan for more.` } },
       429
@@ -108,7 +72,8 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   c.set("userId", key.userId);
   await next();
 
-  // Log usage after response (non-blocking)
+  // Log usage after response (non-blocking). Source of truth for billing
+  // analytics; the enforced quota counter lives in Redis (see rate-limit.ts).
   const status = c.res.status;
   db.insert(usageLogs)
     .values({ apiKeyId: apiKey, endpoint: c.req.path, statusCode: status })

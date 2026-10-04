@@ -4,6 +4,8 @@ MCP server for [Agora](https://github.com/rbtbuilds/agora) — the open protocol
 
 22,500+ products indexed across 52 stores · Protocol v1.0 · MIT licensed.
 
+**Checkout is a prototype:** approval records an order but does not charge a card or complete a real purchase. Do not use it for live transactions.
+
 ## Install
 
 Add to your MCP host config (Claude Desktop / Cursor / etc.):
@@ -50,7 +52,7 @@ Get an API key at [agora-portal.vercel.app](https://agora-portal.vercel.app).
 
 | Tool | Description |
 |---|---|
-| `agora_checkout_create` | Begin a checkout. Returns an approval URL the **human** must visit to authorize the purchase. The agent never charges a card without explicit consumer consent. |
+| `agora_checkout_create` | Begin a checkout and return an approval URL for the consumer. |
 | `agora_checkout_approve` | Approve a pending checkout with the token. Use only when the consumer has explicitly said yes in-conversation. |
 | `agora_checkout_deny` | Deny a pending checkout. No charge is made. |
 | `agora_checkout_status` | Poll a checkout's status (`pending` / `completed` / `denied` / `expired`). |
@@ -63,7 +65,7 @@ Get an API key at [agora-portal.vercel.app](https://agora-portal.vercel.app).
 
 ## Consent model
 
-Every purchase requires explicit consumer approval. The agent never sees a card and cannot complete a charge unilaterally:
+The agent never sees a card. The current prototype records consent and an order without charging a card:
 
 1. Agent calls `agora_checkout_create` from a cart.
 2. Agora returns a **single-use, 15-minute approval token** and a human-facing approval URL.
@@ -71,7 +73,7 @@ Every purchase requires explicit consumer approval. The agent never sees a card 
 4. Agent polls `agora_checkout_status` until status is `completed` (or `denied` / `expired`).
 5. On completion, the agent can fetch order details with `agora_order_get`.
 
-Tokens are timing-safe-compared on the server. Expired tokens cannot be revived.
+Approval tokens expire after 15 minutes. The authenticated API compares submitted tokens in constant time.
 
 ## Transport
 

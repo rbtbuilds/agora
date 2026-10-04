@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import crypto from "node:crypto";
 import { db, carts, cartItems, checkouts, orders, products, stores, consumers, paymentMethods } from "@agora/db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, gt, sql, desc } from "drizzle-orm";
 import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
 import type { AppEnv } from "../types.js";
 
 const commerceRouter = new Hono<AppEnv>();
+
+class CartChangedError extends Error {}
 
 // ---------------------------------------------------------------------------
 // Cart
@@ -125,6 +127,11 @@ commerceRouter.post("/cart/:id/items", async (c) => {
 
   if (!body.productId) {
     return c.json({ error: { code: "BAD_REQUEST", message: "Field 'productId' is required" } }, 400);
+  }
+
+  if (body.quantity !== undefined &&
+    (!Number.isInteger(body.quantity) || body.quantity < 1 || body.quantity > 2_147_483_647)) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Quantity must be a positive integer" } }, 400);
   }
 
   const ownerId = c.get("userId") as string;
@@ -353,42 +360,8 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
     return c.json({ error: { code: "GONE", message: "Checkout has expired" } }, 410);
   }
 
-  // TODO: Stripe Payment Intent — charge the customer here
+  // TODO: Stripe Payment Intent -- charge the customer here
   // e.g. await stripe.paymentIntents.create({ amount: ..., customer: ..., payment_method: ... })
-
-  // Update checkout status to completed
-  await db
-    .update(checkouts)
-    .set({ status: "completed" } as any)
-    .where(eq(checkouts.id, checkoutId));
-
-  // Update cart status to checked_out
-  await db
-    .update(carts)
-    .set({ status: "checked_out" } as any)
-    .where(eq(carts.id, checkout.cartId));
-
-  // Fetch cart items with product details for order snapshot
-  const itemRows = await db
-    .select({
-      id: cartItems.id,
-      productId: cartItems.productId,
-      storeId: cartItems.storeId,
-      quantity: cartItems.quantity,
-      priceAtAdd: cartItems.priceAtAdd,
-      productName: products.name,
-    })
-    .from(cartItems)
-    .leftJoin(products, eq(cartItems.productId, products.id))
-    .where(eq(cartItems.cartId, checkout.cartId));
-
-  // Group cart items by storeId — one order per store
-  const byStore = new Map<string, typeof itemRows>();
-  for (const item of itemRows) {
-    const key = item.storeId ?? "__unknown__";
-    if (!byStore.has(key)) byStore.set(key, []);
-    byStore.get(key)!.push(item);
-  }
 
   const createdOrders: Array<{
     id: string;
@@ -398,55 +371,143 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
     items: Array<{ productId: string; name: string; quantity: number; price: string }>;
   }> = [];
 
-  for (const [storeKey, storeItems] of byStore) {
-    const orderId = `ord_${crypto.randomBytes(12).toString("hex")}`;
-    const storeId = storeKey === "__unknown__" ? null : storeKey;
+  // Webhooks are collected during the transaction and dispatched only after it
+  // commits, so a rolled-back approval never emits a phantom order.created.
+  const webhookJobs: Array<{ event: string; store_id: string; data: Record<string, unknown> }> = [];
 
-    let orderTotal = 0;
-    for (const item of storeItems) {
-      orderTotal += parseFloat(item.priceAtAdd) * item.quantity;
-    }
-    const orderTotalStr = orderTotal.toFixed(2);
+  // Atomic: checkout/cart status updates + per-store order inserts all commit
+  // together or not at all. A crash mid-flow no longer leaves a completed
+  // checkout with zero orders.
+  let approved = false;
+  try {
+    approved = await db.transaction(async (tx) => {
+      const [claimed] = await tx
+        .update(checkouts)
+        .set({ status: "completed" } as any)
+        .where(and(
+          eq(checkouts.id, checkoutId),
+          eq(checkouts.status, "pending"),
+          gt(checkouts.expiresAt, new Date()),
+        ))
+        .returning({ id: checkouts.id });
 
-    const itemsSnapshot = storeItems.map((item) => ({
-      productId: item.productId,
-      name: item.productName ?? item.productId,
-      quantity: item.quantity,
-      price: item.priceAtAdd,
-    }));
+      if (!claimed) return false;
 
-    await db.insert(orders).values({
-      id: orderId,
-      checkoutId,
-      consumerId: checkout.consumerId,
-      ownerId,
-      storeId,
-      status: "confirmed",
-      totalAmount: orderTotalStr,
-      items: itemsSnapshot,
-    } as any);
+      await tx
+        .update(carts)
+        .set({ status: "checked_out" } as any)
+        .where(eq(carts.id, checkout.cartId));
 
-    createdOrders.push({
-      id: orderId,
-      storeId,
-      status: "confirmed",
-      totalAmount: orderTotalStr,
-      items: itemsSnapshot,
-    });
+      // Fetch cart items with product details for order snapshot
+      const itemRows = await tx
+        .select({
+          id: cartItems.id,
+          productId: cartItems.productId,
+          storeId: cartItems.storeId,
+          quantity: cartItems.quantity,
+          priceAtAdd: cartItems.priceAtAdd,
+          productName: products.name,
+        })
+        .from(cartItems)
+        .leftJoin(products, eq(cartItems.productId, products.id))
+        .where(eq(cartItems.cartId, checkout.cartId));
 
-    // Dispatch webhook to store
-    if (storeId) {
-      await dispatchWebhooks({
-        event: "order.created",
-        store_id: storeId,
-        data: {
-          orderId,
+      const currentTotal = itemRows.reduce(
+        (sum, item) => sum + parseFloat(item.priceAtAdd) * item.quantity, 0
+      ).toFixed(2);
+      if (itemRows.length === 0 || currentTotal !== checkout.totalAmount) {
+        throw new CartChangedError("Cart changed after checkout began");
+      }
+
+      // Group cart items by storeId -- one order per store
+      const byStore = new Map<string, typeof itemRows>();
+      for (const item of itemRows) {
+        const key = item.storeId ?? "__unknown__";
+        if (!byStore.has(key)) byStore.set(key, []);
+        byStore.get(key)!.push(item);
+      }
+
+      for (const [storeKey, storeItems] of byStore) {
+        const orderId = `ord_${crypto.randomBytes(12).toString("hex")}`;
+        const storeId = storeKey === "__unknown__" ? null : storeKey;
+
+        let orderTotal = 0;
+        for (const item of storeItems) {
+          orderTotal += parseFloat(item.priceAtAdd) * item.quantity;
+        }
+        const orderTotalStr = orderTotal.toFixed(2);
+
+        const itemsSnapshot = storeItems.map((item) => ({
+          productId: item.productId,
+          name: item.productName ?? item.productId,
+          quantity: item.quantity,
+          price: item.priceAtAdd,
+        }));
+
+        await tx.insert(orders).values({
+          id: orderId,
           checkoutId,
           consumerId: checkout.consumerId,
+          ownerId,
+          storeId,
+          status: "confirmed",
           totalAmount: orderTotalStr,
           items: itemsSnapshot,
-        },
-      });
+        } as any);
+
+        createdOrders.push({
+          id: orderId,
+          storeId,
+          status: "confirmed",
+          totalAmount: orderTotalStr,
+          items: itemsSnapshot,
+        });
+
+        if (storeId) {
+          webhookJobs.push({
+            event: "order.created",
+            store_id: storeId,
+            data: {
+              orderId,
+              checkoutId,
+              consumerId: checkout.consumerId,
+              totalAmount: orderTotalStr,
+              items: itemsSnapshot,
+            },
+          });
+        }
+      }
+      return true;
+    });
+  } catch (err) {
+    if (err instanceof CartChangedError) {
+      return c.json({
+        error: { code: "CONFLICT", message: "Cart changed after checkout began; create a new checkout" },
+      }, 409);
+    }
+    console.error(`[checkout] approval transaction failed for ${checkoutId}:`, err);
+    return c.json(
+      { error: { code: "INTERNAL", message: "Failed to complete checkout" } },
+      500
+    );
+  }
+
+  if (!approved) {
+    return c.json(
+      { error: { code: "CONFLICT", message: "Checkout is no longer pending" } },
+      409
+    );
+  }
+
+  // Post-commit side effects: webhook delivery is best-effort and must never
+  // undo a committed order, so it lives outside the transaction AND swallows
+  // its own errors -- a dispatch failure here must not 500 a completed order
+  // (the client would retry and double-order).
+  for (const job of webhookJobs) {
+    try {
+      await dispatchWebhooks(job);
+    } catch (err) {
+      console.error(`[checkout] webhook dispatch failed for ${checkoutId}:`, err);
     }
   }
 
@@ -505,10 +566,19 @@ commerceRouter.post("/checkout/:id/deny", async (c) => {
     return c.json({ error: { code: "GONE", message: "Checkout has expired" } }, 410);
   }
 
-  await db
+  const [denied] = await db
     .update(checkouts)
     .set({ status: "denied" } as any)
-    .where(eq(checkouts.id, checkoutId));
+    .where(and(
+      eq(checkouts.id, checkoutId),
+      eq(checkouts.status, "pending"),
+      gt(checkouts.expiresAt, new Date()),
+    ))
+    .returning({ id: checkouts.id });
+
+  if (!denied) {
+    return c.json({ error: { code: "CONFLICT", message: "Checkout is no longer pending" } }, 409);
+  }
 
   return c.json({ data: { status: "denied" } });
 });

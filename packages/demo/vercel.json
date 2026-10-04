@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npx tailwindcss -i app/globals.css -o app/tailwind.css --minify && next build",
+  "installCommand": "npm install --prefix=../..",
+  "ignoreCommand": "npx turbo-ignore @agora/demo"
+}

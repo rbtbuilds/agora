@@ -12,5 +12,5 @@
   "exports": { ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" } },
   "scripts": { "build": "tsc", "test": "vitest run", "test:watch": "vitest" },
   "dependencies": { "ajv": "^8.17", "ajv-formats": "^3.0" },
-  "devDependencies": { "typescript": "^5.7", "vitest": "^3", "@types/node": "^22" }
+  "devDependencies": { "typescript": "^5.7", "vitest": "^5.0.2", "@types/node": "^22" }
 }
