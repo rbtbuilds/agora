@@ -3,20 +3,20 @@
 interface Product {
   id: string;
   sourceUrl: string;
-  source: string;
   name: string;
-  description: string;
   price: { amount: string; currency: string } | null;
   images: string[];
-  categories: string[];
-  attributes: Record<string, string>;
   availability: "in_stock" | "out_of_stock" | "unknown";
-  seller: { name: string | null; url: string | null; rating: string | null };
-  lastCrawled: string;
+  seller: { name: string | null };
 }
 
 function ProductCard({ product }: { product: Product }) {
   const imageUrl = product.images[0];
+  const availability = {
+    in_stock: { label: "In Stock", classes: "bg-green-900/50 text-green-400" },
+    out_of_stock: { label: "Out of Stock", classes: "bg-red-900/50 text-red-400" },
+    unknown: { label: "Availability Unknown", classes: "bg-[#3f3f46] text-[#e5e5e5]" },
+  }[product.availability];
 
   return (
     <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col">
@@ -33,13 +33,9 @@ function ProductCard({ product }: { product: Product }) {
           </div>
         )}
         <span
-          className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium ${
-            product.availability === "in_stock"
-              ? "bg-green-900/50 text-green-400"
-              : "bg-red-900/50 text-red-400"
-          }`}
+          className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium ${availability.classes}`}
         >
-          {product.availability === "in_stock" ? "In Stock" : "Out of Stock"}
+          {availability.label}
         </span>
       </div>
       <div className="p-3 flex flex-col gap-1 flex-1">
@@ -52,7 +48,10 @@ function ProductCard({ product }: { product: Product }) {
         <div className="mt-auto pt-2 flex items-center justify-between">
           {product.price ? (
             <span className="text-price font-semibold">
-              ${product.price.amount}
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: product.price.currency,
+              }).format(Number(product.price.amount))}
             </span>
           ) : (
             <span className="text-secondary text-sm">Price N/A</span>

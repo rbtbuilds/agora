@@ -5,12 +5,12 @@
   "scripts": {
     "dev": "npx tailwindcss -i app/globals.css -o app/tailwind.css --watch & next dev --port 3001",
     "build": "npx tailwindcss -i app/globals.css -o app/tailwind.css --minify && next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3",
-    "@ai-sdk/groq": "^3",
     "@ai-sdk/react": "^3",
+    "@upstash/redis": "1.38.0",
     "ai": "^6",
     "autoprefixer": "^10.4.27",
     "next": "^15",
@@ -25,6 +25,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.7"
+    "typescript": "^5.7",
+    "vitest": "5.0.2"
   }
 }

@@ -196,6 +196,8 @@ Monorepo managed by [Turborepo](https://turbo.build/). CI via GitHub Actions.
 | `packages/demo` | Demo application with AI chat agent (Next.js) |
 | `crawler/` | Data ingestion -Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
 
+The [live demo](https://demo-five-coral-13.vercel.app) uses Vercel AI Gateway to run a small shopping assistant. It can search the Agora catalog and show product cards; it does not place orders. Chat is limited to five messages per IP address per UTC day through a shared Redis counter. The demo returns an error when that counter is unavailable, so the limit cannot be bypassed by a server restart. Vercel supplies Gateway authentication through OIDC; local runs need an `AI_GATEWAY_API_KEY`. See [.env.example](.env.example) for the demo's catalog and Redis variables.
+
 ### Engineering Highlights
 
 - [Protocol validator](packages/validator/src/validate-store.ts) checks manifests and samples product feeds, with URL validation before fetching external endpoints.
