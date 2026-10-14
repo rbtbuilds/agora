@@ -54,72 +54,84 @@ function Chat() {
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.role === "user" ? "justify-start" : "justify-end"
-            }`}
-          >
+        {messages.map((message) => {
+          const hasSearchResult = message.parts.some(
+            (part) => part.type === "tool-searchProducts" && part.state === "output-available"
+          );
+          return (
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 ${
-                message.role === "user"
-                  ? "bg-surface text-[#e5e5e5]"
-                  : "bg-accent-dim border border-accent-border text-[#e5e5e5]"
+              key={message.id}
+              className={`flex ${
+                message.role === "user" ? "justify-start" : "justify-end"
               }`}
             >
-              {message.role !== "user" && (
-                <p className="text-accent text-xs font-medium mb-1">
-                  Agora Agent
-                </p>
-              )}
-              {message.parts.map((part, i) => {
-                if (part.type === "text" && part.text) {
-                  return (
-                    <p key={i} className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {part.text}
-                    </p>
-                  );
-                }
-                // v6 pattern: tool-<toolName>, states are input-available / output-available
-                if (part.type === "tool-searchProducts") {
-                  if (part.state === "output-available") {
-                    const output = part.output as {
-                      products?: Product[];
-                      total?: number;
-                      error?: string;
-                    };
-                    if (output.error) {
-                      return (
-                        <p key={i} className="text-red-400 text-sm">
-                          {output.error}
-                        </p>
-                      );
-                    }
-                    if (output.products && output.products.length > 0) {
-                      return (
-                        <div key={i} className="mt-3">
-                          <ProductCardRow products={output.products} />
-                        </div>
-                      );
-                    }
-                  }
-                  if (
-                    part.state === "input-available" ||
-                    part.state === "input-streaming"
-                  ) {
+              <div
+                className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                  message.role === "user"
+                    ? "bg-surface text-[#e5e5e5]"
+                    : "bg-accent-dim border border-accent-border text-[#e5e5e5]"
+                }`}
+              >
+                {message.role !== "user" && (
+                  <p className="text-accent text-xs font-medium mb-1">
+                    Agora Agent
+                  </p>
+                )}
+                {message.parts.map((part, i) => {
+                  if (part.type === "text" && part.text) {
+                    if (hasSearchResult) return null;
                     return (
-                      <p key={i} className="text-secondary text-xs italic">
-                        Searching products...
+                      <p key={i} className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {part.text}
                       </p>
                     );
                   }
-                }
-                return null;
-              })}
+                  // v6 pattern: tool-<toolName>, states are input-available / output-available
+                  if (part.type === "tool-searchProducts") {
+                    if (part.state === "output-available") {
+                      const output = part.output as {
+                        products?: Product[];
+                        total?: number;
+                        error?: string;
+                      };
+                      if (output.error) {
+                        return (
+                          <p key={i} className="text-red-400 text-sm">
+                            {output.error}
+                          </p>
+                        );
+                      }
+                      if (output.products) {
+                        const count = output.products.length;
+                        return (
+                          <div key={i} className="mt-3">
+                            <p className="mb-3 text-sm leading-relaxed">
+                              {count > 0
+                                ? `${count} catalog ${count === 1 ? "match" : "matches"}. Check current listings for updated prices and availability.`
+                                : "No matching products in this catalog snapshot."}
+                            </p>
+                            {count > 0 && <ProductCardRow products={output.products} />}
+                          </div>
+                        );
+                      }
+                    }
+                    if (
+                      part.state === "input-available" ||
+                      part.state === "input-streaming"
+                    ) {
+                      return (
+                        <p key={i} className="text-secondary text-xs italic">
+                          Searching products...
+                        </p>
+                      );
+                    }
+                  }
+                  return null;
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && messages[messages.length - 1]?.role === "user" && (
           <div className="flex justify-end">
@@ -177,7 +189,7 @@ function Chat() {
           </button>
         </form>
         <p className="mt-2 text-xs text-secondary">
-          Five messages per IP address each day. Resets at 00:00 UTC.
+          Catalog snapshot; listings may have changed. Five messages per IP daily, resetting at 00:00 UTC.
         </p>
       </div>
     </div>

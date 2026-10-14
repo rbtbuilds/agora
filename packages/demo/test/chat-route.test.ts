@@ -71,7 +71,10 @@ describe("chat route", () => {
     expect(response.status).toBe(200);
     expect(mocks.consume).toHaveBeenCalledOnce();
     expect(mocks.stream).toHaveBeenCalledWith(
-      expect.objectContaining({ model: "nvidia/nemotron-3.5-lightning-free" })
+      expect.objectContaining({
+        model: "nvidia/nemotron-3.5-lightning-free",
+        stopWhen: 1,
+      })
     );
   });
 
@@ -140,5 +143,6 @@ describe("chat route", () => {
     const result = await searchTool.execute({ query: "kids warm wool loungers", maxPrice: 80 });
 
     expect(result.products.map((item: { name: string }) => item.name)).toEqual(["Wool Loungers"]);
+    expect(result.products[0]).not.toHaveProperty("availability");
   });
 });
