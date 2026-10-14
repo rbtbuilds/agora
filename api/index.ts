@@ -1,7 +1,10 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import app from "../packages/api/src/index.js";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+type ApiRequest = IncomingMessage & { body?: unknown };
+type ApiResponse = ServerResponse & { status(code: number): ApiResponse };
+
+export default async function handler(req: ApiRequest, res: ApiResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
