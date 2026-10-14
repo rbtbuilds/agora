@@ -13,6 +13,8 @@ The registry and product search are live. Cart, checkout approval, and order cre
 
 [**Live API**](https://agora-ecru-chi.vercel.app) · [**API Playground**](https://agora-ecru-chi.vercel.app/playground) · [**Registry**](https://agora-ecru-chi.vercel.app/v1/registry/stats) · [**Demo**](https://demo-five-coral-13.vercel.app) · [**Portal**](https://agora-portal.vercel.app)
 
+**Try it:** Open the [shopping demo](https://demo-five-coral-13.vercel.app), choose Explore, and search for `wool loungers`. Chat also accepts product requests and allows five messages per IP address per UTC day. Product cards show catalog snapshots; use their links to check current listings.
+
 ---
 
 ## The Protocol
@@ -51,7 +53,8 @@ The API lets agents build a cart, request approval, and record an order after ap
 
 ```
 Consumer: "Buy me those hiking boots"
-Agent:    POST /v1/cart -> adds product
+Agent:    POST /v1/cart -> creates cart
+Agent:    POST /v1/cart/:id/items -> adds product
 Agent:    POST /v1/checkout -> requests approval
 Agora:    "Approve $89.99 at Example Store?"
 Consumer: "Yes"
@@ -103,16 +106,21 @@ import { Agora } from 'agora-sdk'
 
 const agora = new Agora({ apiKey: 'ak_your_key' })
 
-const results = await agora.search('waterproof hiking boots under $100')
-const product = await agora.product('agr_abc123')
-const similar = await agora.similar('agr_abc123')
+const results = await agora.search('wool loungers', { maxPrice: 50 })
+const first = results.data[0]
+if (first) {
+  const product = await agora.product(first.id)
+  console.log(product.data.name)
+}
 ```
 
 Built-in response caching. Full TypeScript types. Zero dependencies.
 
+Product search matches keywords in names and descriptions, regardless of word order. Pass price limits as options; the demo chat handles conversational requests.
+
 ### MCP Server
 
-For agents that support the [Model Context Protocol](https://modelcontextprotocol.io/) -Claude, ChatGPT, Cursor, and others.
+For agents that support the [Model Context Protocol](https://modelcontextprotocol.io/), including Claude, ChatGPT, and Cursor.
 
 ```bash
 npm install agora-mcp-server
@@ -162,7 +170,7 @@ Agora generates your `agora.json`, proxies your product feed in protocol format,
 
 Implement the protocol directly for full control.
 
-1. Create your `agora.json` -declare capabilities and endpoints
+1. Create your `agora.json` and declare capabilities and endpoints
 2. Serve it at `/.well-known/agora.json`
 3. Implement the required endpoints (`products` and `product`)
 4. Build and run the validator from this repository: `npm run build --workspace @agora/validator && node packages/validator/dist/cli.js https://yourdomain.com`
@@ -172,12 +180,12 @@ Getting started guide: [docs/protocol/getting-started.md](docs/protocol/getting-
 
 ### What Stores Get
 
-- **Listed in the public registry** -agents discover your store automatically
-- **Checkout prototype** -agents can build carts and record an approved order; live payments are not connected
-- **Analytics** -see how agents interact with your products (queries, views, trends)
-- **Trust score** -protocol compliance rating that agents use to prioritize stores
-- **Webhooks** -real-time notifications for searches, product views, and orders
-- **Cross-store visibility** -your products appear in comparison results across the network
+- **Listed in the public registry:** Agents can discover your store.
+- **Checkout prototype:** Agents can build carts and record approved orders; live payments are not connected.
+- **Analytics:** See queries, product views, and trends.
+- **Trust score:** A score based on protocol and catalog signals.
+- **Webhooks:** Receive notifications for searches, product views, and orders.
+- **Cross-store visibility:** Products can appear in comparison results across the network.
 
 ---
 
@@ -187,14 +195,14 @@ Monorepo managed by [Turborepo](https://turbo.build/). CI via GitHub Actions.
 
 | Package | Description |
 |---------|-------------|
-| `packages/validator` | Protocol validator -CLI and library (`@agora/validator`) |
+| `packages/validator` | Protocol validator CLI and library (`@agora/validator`) |
 | `packages/sdk` | TypeScript SDK for agent developers (`agora-sdk`) |
 | `packages/mcp` | MCP server for AI agent tool use (`agora-mcp-server`) |
 | `packages/api` | API server (Hono on Vercel) |
 | `packages/db` | Database schema and migrations (Drizzle + PostgreSQL + pgvector) |
-| `packages/portal` | Developer portal with auth and billing (Next.js) |
+| `packages/portal` | Developer portal for API keys and usage (Next.js) |
 | `packages/demo` | Demo application with AI chat agent (Next.js) |
-| `crawler/` | Data ingestion -Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
+| `crawler/` | Data ingestion: Shopify bulk crawler and Amazon spider (Scrapy + Playwright) |
 
 The [live demo](https://demo-five-coral-13.vercel.app) uses Vercel AI Gateway to run a small shopping assistant. It can search an Agora catalog snapshot and show product cards with links to find current listings; it does not place orders. Snapshot prices and source images may have changed since collection, so current availability is not shown. Chat is limited to five messages per IP address per UTC day through a shared Redis counter. The demo returns an error when that counter is unavailable, so the limit cannot be bypassed by a server restart. Vercel supplies Gateway authentication through OIDC; local runs need an `AI_GATEWAY_API_KEY`. See [.env.example](.env.example) for the demo's catalog and Redis variables.
 
@@ -300,7 +308,7 @@ Prerequisites: Node.js 22+ for building and testing; PostgreSQL 16+ with pgvecto
 **Roadmap:**
 - Semantic search with pgvector embeddings
 - Card charging and automated approval link delivery
-- Marketing site and custom domains
+- Custom domains for the API, portal, and demo
 - 100k+ products across 200+ stores
 
 ---
