@@ -12,7 +12,7 @@ const AGORA_API_URL =
   process.env.AGORA_API_URL ?? "https://agora-ecru-chi.vercel.app";
 const AGORA_API_KEY = process.env.AGORA_API_KEY ?? "ak_test_123";
 
-const SYSTEM_PROMPT = `You are Agora, a shopping assistant. When a user asks for products, call searchProducts with a short, specific search query (one to three product words) and any requested price limits. Recommend only products returned by the tool. If there are no matches, say so. Keep the answer to two or three short sentences; product cards appear below it.`;
+const SYSTEM_PROMPT = `You are Agora, a shopping assistant for a catalog snapshot. When a user asks for products, call searchProducts with a short, specific search query (one to three product words) and any requested price limits. The interface presents search results, so you do not need to describe products after calling the tool. Prices are historical catalog values, so never claim they are current. For other questions, answer in one or two short plain-text sentences without Markdown.`;
 
 interface CatalogProduct {
   id: string;
@@ -95,10 +95,8 @@ const searchProductsTool = tool({
     const products = matches.slice(0, 6).map((product) => ({
       id: product.id,
       name: product.name,
-      sourceUrl: product.sourceUrl,
       images: product.images.slice(0, 1),
       price: product.price,
-      availability: product.availability,
       seller: { name: product.seller.name },
     }));
     return {
@@ -157,7 +155,7 @@ export async function POST(req: Request) {
     system: SYSTEM_PROMPT,
     messages: modelMessages,
     tools: { searchProducts: searchProductsTool },
-    stopWhen: stepCountIs(2),
+    stopWhen: stepCountIs(1),
     maxOutputTokens: 800,
   });
 
