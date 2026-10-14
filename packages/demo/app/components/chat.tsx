@@ -7,16 +7,16 @@ import { ProductCardRow } from "./product-card";
 import type { Product } from "./product-card";
 
 const SUGGESTIONS = [
-  "Find me running shoes under $80",
-  "What wool shoes do you have?",
-  "Show me kids' shoes",
+  "Show me kids' wool loungers",
+  "Find a graphic tee under $30",
+  "Find a weekender bag under $100",
   "Compare the cheapest loungers",
 ];
 
 const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
 
 function Chat() {
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: chatTransport,
   });
   const [input, setInput] = useState("");
@@ -128,42 +128,58 @@ function Chat() {
                 Agora Agent
               </p>
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-accent rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-accent rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-accent rounded-full animate-bounce [animation-delay:300ms]" />
+                <span className="w-2 h-2 bg-accent rounded-full animate-bounce motion-reduce:animate-none [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-accent rounded-full animate-bounce motion-reduce:animate-none [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-accent rounded-full animate-bounce motion-reduce:animate-none [animation-delay:300ms]" />
               </div>
             </div>
           </div>
         )}
+
+        {error && (
+          <p role="alert" className="text-sm text-red-400">
+            {error.message.startsWith("Daily limit reached.")
+              ? error.message
+              : "Agora could not answer this time. Please try again later."}
+          </p>
+        )}
       </div>
 
       {/* Input bar */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (input.trim()) {
-            sendMessage({ text: input });
-            setInput("");
-          }
-        }}
-        className="p-4 border-t border-border flex gap-2"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about any product..."
-          className="flex-1 bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-[#e5e5e5] placeholder:text-secondary outline-none focus:border-accent transition-colors"
-          disabled={isLoading}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="bg-accent hover:bg-[#8b5cf6] disabled:opacity-50 disabled:cursor-not-allowed text-white w-10 h-10 rounded-lg flex items-center justify-center transition-colors text-lg"
+      <div className="p-4 border-t border-border">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (input.trim()) {
+              sendMessage({ text: input.trim() });
+              setInput("");
+            }
+          }}
+          className="flex gap-2"
         >
-          →
-        </button>
-      </form>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about any product..."
+            aria-label="Ask Agora about a product"
+            maxLength={500}
+            className="flex-1 min-w-0 bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-[#e5e5e5] placeholder:text-secondary outline-none focus:border-accent transition-colors"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            aria-label="Send message"
+            disabled={isLoading || !input.trim()}
+            className="bg-accent hover:bg-[#8b5cf6] disabled:opacity-50 disabled:cursor-not-allowed text-white w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors text-lg"
+          >
+            →
+          </button>
+        </form>
+        <p className="mt-2 text-xs text-secondary">
+          Five messages per IP address each day. Resets at 00:00 UTC.
+        </p>
+      </div>
     </div>
   );
 }
